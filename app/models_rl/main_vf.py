@@ -440,18 +440,18 @@ if __name__ == '__main__':
         res = bin.pack()
         
         #=====================================================================
-        res = res.merge(df_key, how = 'left',left_on = ['Longueur Item (cm)',
-       'Largeur Item (cm)', 'Hauteur Item (cm)', 'Poids Item (kg)'],
+        res = res.merge(df_key, how = 'left',left_on = ['Longueur Article (cm)',
+       'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)'],
        right_on = ['Longueur_key','Largeur_key', 'Hauteur_key', 'Poids_key'])
         
         res = res.drop_duplicates(subset = ["key","ID Bin"])
         res = res[
-            ["sku", 'ID Bin', 'Longueur Item (cm)',
-       'Largeur Item (cm)', 'Hauteur Item (cm)', 'Poids Item (kg)',
-       'Quantite Item', "Item's volume",
-       "Items's volume", "Items's weight", "Longueur", 'Largeur', 'Hauteur',
-       'Max Weight', 'Prix', 'Quantite', 'Type', "Bin's volume",
-       'Espace inoccupé', 'Less weight', 'fragile']
+            ["sku", 'ID Bin', 'Longueur Article (cm)',
+       'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
+       'Quantite Article', "Volume Article",
+       "Volume Articles", "Poids Articles", "Longueur", 'Largeur', 'Hauteur',
+       'Max Weight', 'Prix', 'Quantite', 'Type', "Volume Carton",
+       'Espace inoccupé', 'Poids inoccupé', 'fragile']
         ]
         #======================================================================
         print(res)

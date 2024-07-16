@@ -18,11 +18,11 @@ def view(pred, df_article, df_carton):
     res["cumul_poids"] = res.groupby("id_carton")["Poids_Qte"].transform("sum")
     df_carton["id"] = df_carton.index
     res = res.rename(columns = {
-        'Longueur': 'Longueur Item (cm)',
-        'Largeur': 'Largeur Item (cm)',
-        'Hauteur': 'Hauteur Item (cm)',
-        'Poids': 'Poids Item (kg)',
-        'Quantite': 'Quantite Item',
+        'Longueur': 'Longueur Article (cm)',
+        'Largeur': 'Largeur Article (cm)',
+        'Hauteur': 'Hauteur Article (cm)',
+        'Poids': 'Poids Article (kg)',
+        'Quantite': 'Quantite Article',
         'v': 'v_last'
     })
     res = res.join(df_carton.set_index('id'), on='id_carton')
@@ -32,11 +32,11 @@ def view(pred, df_article, df_carton):
     res["poids_inocc"] = np.round(100 * (res["Poids_max"] - res["cumul_poids"]) / res["Poids_max"], 2)
 
     res = res.rename(columns = {
-        'Longueur': 'Longueur Bin (cm)',
-        'Largeur': 'Largeur Bin (cm)',
-        'Hauteur': 'Hauteur Bin (cm)',
-        'Poids_max': 'Poids_max Bin (kg)',
-        'Quantite': 'Quantite Bin',
+        'Longueur': 'Longueur Carton (cm)',
+        'Largeur': 'Largeur Carton (cm)',
+        'Hauteur': 'Hauteur Carton (cm)',
+        'Poids_max': 'Poids_max Carton (kg)',
+        'Quantite': 'Quantite Carton',
     })
 
     #list_def = ["id_article", "id_carton", "box_volume", "article_volume", "cumul_volume", "esp_inocc", "cumul_poids", "Poids_max", "poids_inocc"]
@@ -46,15 +46,15 @@ def view(pred, df_article, df_carton):
     # Décommenter les lignes ci-dessous si vous souhaitez renommer les colonnes
     
     res = res.rename(columns={
-        'id_article': 'ID article',
-        'id_carton': 'ID Bin',
-        'box_volume': "Bin's volume",
-        "article_volume": "Item's volume",
-        "cumul_volume": "Items's volume",
+        'id_article': 'ID Article',
+        'id_carton': 'ID Carton',
+        'box_volume': "Volume Carton",
+        "article_volume": "Volume Article",
+        "cumul_volume": "Volume Articles",
         "esp_inocc": "Espace inoccupé",
-        "cumul_poids": "Items's weight",
-        "Poids_max": "Max Weight",
-        "poids_inocc": "Less weight"
+        "cumul_poids": "Poids Articles",
+        "Poids_max": "Poids Max",
+        "poids_inocc": "Poids inoccupé"
     })
     return res
 

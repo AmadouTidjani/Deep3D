@@ -93,13 +93,13 @@ def main_function(model_used = False):
         right_on = ['Longueur_key','Largeur_key', 'Hauteur_key', 'Poids_key'])
             
         res = res.drop_duplicates(subset = ["key","ID Bin"])
-        res = res[["sku", 'ID Bin', 'Longueur Item (cm)',
-        'Largeur Item (cm)', 'Hauteur Item (cm)', 'Poids Item (kg)',
-        'Quantite Item', "Item's volume",
-        "Items's volume", "Items's weight", "Longueur", 'Largeur', 'Hauteur',
-        'Max Weight', 'Prix', 'Quantite', 'Type', "Bin's volume",
-        'Espace inoccupé', 'Less weight', 'fragile']].copy()
-        res[["Items's volume", "Items's weight","Bin's volume",'Espace inoccupé', "Items's weight"]] = res[["Items's volume", "Items's weight","Bin's volume",'Espace inoccupé', "Items's weight"]].round(2)
+        res = res[["sku", 'ID Bin', 'Longueur Article (cm)',
+       'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
+       'Quantite Article', "Volume Article",
+       "Volume Articles", "Poids Articles", "Longueur", 'Largeur', 'Hauteur',
+       'Max Weight', 'Prix', 'Quantite', 'Type', "Volume Carton",
+       'Espace inoccupé', 'Poids inoccupé', 'fragile']].copy()
+        res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]] = res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]].round(2)
         #======================================================================
         print("je suis là",res)
         return res

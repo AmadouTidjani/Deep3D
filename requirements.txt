@@ -1,0 +1,12 @@
+flask
+tqdm
+tensorflow
+plotly
+playsound
+flask_login
+flask_migrate
+flask_mail
+flask_bcrypt
+flask_paginate
+flask_wtf
+email_validator
