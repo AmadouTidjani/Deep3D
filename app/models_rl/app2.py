@@ -40,7 +40,7 @@ def process_form():
     #df_result = getPack(df_article, df_carton)
     
     # Convert the resulting dataframe to a list of dictionaries
-    result = df_result.to_dict(orient='records')
+    result = df_result.to_dict()#orient='records')
     
     return jsonify(result)
 
@@ -88,12 +88,12 @@ def main_function(model_used = False):
             res =  bin.pack()
         
         #=====================================================================
-        res = res.merge(df_key, how = 'left',left_on = ['Longueur Item (cm)',
-        'Largeur Item (cm)', 'Hauteur Item (cm)', 'Poids Item (kg)'],
+        res = res.merge(df_key, how = 'left',left_on = ['Longueur Article (cm)',
+        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)'],
         right_on = ['Longueur_key','Largeur_key', 'Hauteur_key', 'Poids_key'])
             
-        res = res.drop_duplicates(subset = ["key","ID Bin"])
-        res = res[["sku", 'ID Bin', 'Longueur Article (cm)',
+        res = res.drop_duplicates(subset = ["key","ID Carton"])
+        res = res[["sku", 'ID Carton', 'Longueur Article (cm)',
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
        'Quantite Article', "Volume Article",
        "Volume Articles", "Poids Articles", "Longueur", 'Largeur', 'Hauteur',
@@ -101,7 +101,7 @@ def main_function(model_used = False):
        'Espace inoccupé', 'Poids inoccupé', 'fragile']].copy()
         res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]] = res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]].round(2)
         #======================================================================
-        print("je suis là",res)
+        
         return res
 
 

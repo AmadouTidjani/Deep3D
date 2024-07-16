@@ -22,7 +22,7 @@ def process_form():
     df_result = main_function() #example_function(df)
     
     # Convert the resulting dataframe to a list of dictionaries
-    result = df_result.to_dict(orient='records')
+    result = df_result.to_dict()#orient='records')
     print("result : ", result)
     
     return jsonify(result)
