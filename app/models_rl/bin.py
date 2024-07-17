@@ -68,31 +68,22 @@ def model_pack_articles(df_article, model_used=args.model_used):
     res = res.merge(df_key, how = 'left',left_on = ['Longueur Article (cm)',
         'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)'],
         right_on = ['Longueur_key','Largeur_key', 'Hauteur_key', 'Poids_key'])
-            
+
+    ######################## VISUALISATION ############################
+    visualize_packing1(res[['ID Carton','Longueur Carton (cm)',
+       'Largeur Carton (cm)', 'Hauteur Carton (cm)', 'Longueur Article (cm)',
+       'Largeur Article (cm)', 'Hauteur Article (cm)']])
+       
+    #########################################################        
     res = res.drop_duplicates(subset = ["key","ID Carton"])
-    print(res.columns)
     res = res[["sku", 'ID Carton', 'Longueur Article (cm)',
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
        'Quantite Article', "Volume Article",
        "Volume Articles", "Poids Articles",'Quantite Carton',
        'Poids_max Carton (kg)', 'Prix','Type', "Volume Carton",
        'Espace inoccupé', 'Poids inoccupé', 'Quantite_key', 'Type']].copy()
-    """
-    ['ID Article', 'ID Carton', 'pack_together', 'Longueur Article (cm)',
-       'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
-       'Quantite Article', 'v_last', 'Volume Article', 'Poids_Qte',
-       'Volume Articles', 'Poids Articles', 'Longueur Carton (cm)',
-       'Largeur Carton (cm)', 'Hauteur Carton (cm)', 'Poids_max Carton (kg)',
-       'Prix', 'Quantite Carton', 'Type', 'v', 'Volume Carton',
-       'Espace inoccupé', 'Poids inoccupé', 'sku', 'Longueur_key',
-       'Largeur_key', 'Hauteur_key', 'Poids_key', 'Quantite_key', 'key']
-    res = res[["sku", 'ID Carton', 'Longueur Article (cm)',
-       'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
-       'Quantite Article', "Volume Article",
-       "Volume Articles", "Poids Articles", "Longueur", 'Largeur', 'Hauteur',
-       'Max Weight', 'Prix', 'Quantite', 'Type', "Volume Carton",
-       'Espace inoccupé', 'Poids inoccupé', 'fragile']].copy()
-    """
+    
+    
     res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]] = res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]].round(2)
     #======================================================================
     return res
