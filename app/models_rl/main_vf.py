@@ -8,20 +8,20 @@ import collections
 import warnings
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app/models_rl'))
-#from environnement.env import Environment
-from app.models_rl.environnement.env import Environment
-#from dqnet.agent import DQNAgent
-from app.models_rl.dqnet.agent import DQNAgent
+from environnement.env import Environment
+#from app.models_rl.environnement.env import Environment
+from dqnet.agent import DQNAgent
+#from app.models_rl.dqnet.agent import DQNAgent
 import tensorflow as tf
 import numpy as np
 from time import time as t
 from time import sleep
-#from viz import *
-from app.models_rl.viz import *
+from viz import *
+#from app.models_rl.viz import *
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gitviz'))
-#from gitviz.test import pack_viz
-from app.models_rl.gitviz.test import pack_viz
+from gitviz.test import pack_viz
+#from app.models_rl.gitviz.test import pack_viz
 # Ignorer les avertissements "SettingWithCopyWarning"
 warnings.filterwarnings('ignore')
 
@@ -142,7 +142,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
         constraint = False
         action_contraint = 0
         start = time()
-        score = 0
+        score = []
         list_states = list(range(action_size))
         while not done:
             if constraint:
@@ -160,7 +160,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
             if len(info) == 0:
                 action_contraint = action
                 constraint = True
-                score += reward
+                score.append(reward)
                 list_states = list(range(action_size))
             else:
                 if action in list_states:list_states.remove(action)
@@ -185,7 +185,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
                 agent.replay(batch_size)
                 replay_times.append(time() - start_replay)
             
-        scores.append(score)
+        scores.append(np.mean(score))
         times.append(time() - start)
         if e >= 10 and e % 5 == 0:
             savepath = "save/model_" + str(e) + ".weights.h5" 
@@ -209,34 +209,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
         plt.title('Temps par episode')
         plt.savefig('save/train_times.png')
         
-        plt.figure(figsize=(12, 6))
-        plt.plot(act_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for agent.act')
-        plt.savefig('save/act_times.png')
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(step_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for env.step')
-        plt.savefig('save/step_times.png')
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(remember_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for agent.remember')
-        plt.savefig('save/remember_times.png')
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(replay_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for agent.replay')
-        plt.savefig('save/replay_times.png')
-
+       
 def evaluate(env, agent, state_size):
     # Use the trained model to make decisions in the environment
     state = env.reset()
@@ -363,7 +336,6 @@ if __name__ == '__main__':
         df_article = df_article.loc[df_article.index.repeat(df_article['Quantite'])].reset_index(drop=True)
         df_article['Quantite'] = 1
         print( "Nombre Articles : ", len(df_article)) 
-        print( "Nombre Articles : \n", df_article)
         #sleep(10000) 
         df_article = df_article[:args.nb_article]
         df_carton = pd.read_csv("data/bins.csv") # conteneurs_data
@@ -384,7 +356,7 @@ if __name__ == '__main__':
     
     if args.test and not args.train:
         print("=============== Test modèle : ====================\n\n")
-        """
+        
         df_article = pd.read_csv("data/articles_data.csv")
         new_names = {'longueur': 'Longueur', 'largeur': 'Largeur',
         "hauteur": "Hauteur", "poids": "Poids", "quantite": "Quantite"}
@@ -401,7 +373,9 @@ if __name__ == '__main__':
         #===========================================================
         df_article = df_article[['Longueur', 'Largeur', 'Hauteur', 'Poids', 'Quantite']]
         
-        df_article = df_article[:args.nb_article]
+        #df_article = df_article[:args.nb_article]
+        print( "Nombre Articles : ", len(df_article)) 
+        print( "Affichage Articles : ", df_article) 
         df_article = df_article.loc[df_article.index.repeat(df_article['Quantite'])].reset_index(drop=True)
         df_article['Quantite'] = 1
         print( "Nombre Articles : ", len(df_article)) 
@@ -412,6 +386,7 @@ if __name__ == '__main__':
         #df_carton[col] = 4.5*df_carton[col]
         #df_carton = df_carton[1:]
         print( "Nombre Cartons : ", len(df_carton)) 
+        print( "Articles repeat : ", df_article) 
 
 
         # Initialiser l'env
@@ -422,39 +397,46 @@ if __name__ == '__main__':
         state_size = len(env.items_data(0))  #env.get_state_size()
         action_size = len(df_carton)
         agent = DQNAgent(state_size, action_size, args)
-        print(agent._build_model().summary())
+        #print(agent._build_model().summary())
         agent.load("save/model.weights.h5")
 
         #res = test(env, agent, action_size, 20)
         #print("id_carton : ", res)
 
         ## Eval model
-        pred = evaluate(env, agent, state_size)
+        #pred = evaluate(env, agent, state_size)
         
-        viz_result = view(pred, df_article, df_carton)
+        #viz_result = view(pred, df_article, df_carton)
         #print(viz_result)
         #print("===========")
 
         ### BIN PACK
+        print("Avant BIN ")
+        print(df_article)
         bin = Bin(df_article, df_carton)
         res = bin.pack()
-        
+        print(res)
         #=====================================================================
         res = res.merge(df_key, how = 'left',left_on = ['Longueur Article (cm)',
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)'],
        right_on = ['Longueur_key','Largeur_key', 'Hauteur_key', 'Poids_key'])
         
-        res = res.drop_duplicates(subset = ["key","ID Bin"])
-        res = res[
-            ["sku", 'ID Bin', 'Longueur Article (cm)',
+        res = res.drop_duplicates(subset = ["key","ID Carton"])
+        res = res[["sku", 'ID Carton', 'Longueur Article (cm)',
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
        'Quantite Article', "Volume Article",
-       "Volume Articles", "Poids Articles", "Longueur", 'Largeur', 'Hauteur',
-       'Max Weight', 'Prix', 'Quantite', 'Type', "Volume Carton",
-       'Espace inoccupé', 'Poids inoccupé', 'fragile']
-        ]
+       "Volume Articles", "Poids Articles", "Longueur Carton (cm)", 'Largeur Carton (cm)', 'Hauteur Carton (cm)', 'Prix', 'Type', "Volume Carton",
+       'Espace inoccupé', 'Poids inoccupé', 'fragile']].copy()
         #======================================================================
         print(res)
+        ### Non emballé articles
+        sku_articles_init = list(pd.unique(df_key.sku))
+        sku_articles_pack = list(pd.unique(res.sku))
+        sku_artilces_non_pack = [col for col in sku_articles_init if col not in sku_articles_pack]
+
+        table_non_pack_articles = df_key[df_key.sku.isin(sku_artilces_non_pack)].copy()
+        print('Les articles non emballés')
+        print(table_non_pack_articles)
 
         ### 
         #df_carton['id_carton'] = df_carton.index
