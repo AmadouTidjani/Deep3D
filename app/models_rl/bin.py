@@ -86,4 +86,9 @@ def model_pack_articles(df_article, model_used=args.model_used):
     
     res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]] = res[["Volume Articles", "Poids Articles","Volume Carton",'Espace inoccupé', "Poids Article (kg)"]].round(2)
     #======================================================================
-    return res
+    sku_articles_init = list(pd.unique(df_key.sku))
+    sku_articles_pack = list(pd.unique(res.sku))
+    sku_artilces_non_pack = [col for col in sku_articles_init if col not in sku_articles_pack]
+
+        table_non_pack_articles = df_key[df_key.sku.isin(sku_artilces_non_pack)].copy()
+    return res, table_non_pack_articles
