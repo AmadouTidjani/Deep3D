@@ -668,11 +668,22 @@ def pack_articles():
         articles.append(article_dict)
 
     # Process and pack the articles using your Python logic
-    result = model_pack_articles(articles)
+    pack_articles, non_pack_articles = model_pack_articles(articles)
+    result = pack_articles.to_dict(orient='records')
+    dict_non_pack = {}
+    if len(non_pack_articles)==0:
+        dict_non_pack["non_pack_articles"] = 0
+        result.append(dict_non_pack)
+    else :
+        dict_non_pack = {}
+        dict_non_pack["non_pack_articles"] = int(non_pack_articles.Quantite_key.sum())
+        dict_non_pack['sku'] = list(non_pack_articles.sku)
+        dict_non_pack['Quantite_key'] = list(non_pack_articles.Quantite_key)
+        result.append(dict_non_pack)
 
 
     # Return a response indicating success or failure
-    return jsonify(result.to_dict(orient='records'))
+    return jsonify(result)
 
 #Fin Affichage
 

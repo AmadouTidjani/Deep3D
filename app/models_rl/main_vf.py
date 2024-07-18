@@ -8,20 +8,20 @@ import collections
 import warnings
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app/models_rl'))
-from environnement.env import Environment
-#from app.models_rl.environnement.env import Environment
-from dqnet.agent import DQNAgent
-#from app.models_rl.dqnet.agent import DQNAgent
+#from environnement.env import Environment
+from app.models_rl.environnement.env import Environment
+#from dqnet.agent import DQNAgent
+from app.models_rl.dqnet.agent import DQNAgent
 import tensorflow as tf
 import numpy as np
 from time import time as t
 from time import sleep
-from viz import *
-#from app.models_rl.viz import *
+#from viz import *
+from app.models_rl.viz import *
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gitviz'))
-from gitviz.test import pack_viz
-#from app.models_rl.gitviz.test import pack_viz
+#from gitviz.test import pack_viz
+from app.models_rl.gitviz.test import pack_viz
 # Ignorer les avertissements "SettingWithCopyWarning"
 warnings.filterwarnings('ignore')
 
@@ -210,7 +210,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
         plt.savefig('save/train_times.png')
         
        
-def evaluate(env, agent, state_size):
+def evaluate(env, agent, state_size, action_size):
     # Use the trained model to make decisions in the environment
     state = env.reset()
     val_state = env.items_data(state)
@@ -404,7 +404,7 @@ if __name__ == '__main__':
         #print("id_carton : ", res)
 
         ## Eval model
-        #pred = evaluate(env, agent, state_size)
+        #pred = evaluate(env, agent, state_size, action_size)
         
         #viz_result = view(pred, df_article, df_carton)
         #print(viz_result)
@@ -432,9 +432,9 @@ if __name__ == '__main__':
         ### Non emballé articles
         sku_articles_init = list(pd.unique(df_key.sku))
         sku_articles_pack = list(pd.unique(res.sku))
-        sku_artilces_non_pack = [col for col in sku_articles_init if col not in sku_articles_pack]
+        sku_articles_non_pack = [col for col in sku_articles_init if col not in sku_articles_pack]
 
-        table_non_pack_articles = df_key[df_key.sku.isin(sku_artilces_non_pack)].copy()
+        table_non_pack_articles = df_key[df_key.sku.isin(sku_articles_non_pack)].copy()
         print('Les articles non emballés')
         print(table_non_pack_articles)
 

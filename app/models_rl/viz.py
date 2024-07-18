@@ -19,6 +19,7 @@ def view(pred, df_article, df_carton):
 
     res["cumul_volume"] = res.groupby("id_carton")["article_volume"].transform("sum")
     res["cumul_poids"] = res.groupby("id_carton")["Poids_Qte"].transform("sum")
+    print("res : ", res[["Poids_Qte","cumul_poids", "id_carton"]])
     df_carton["id"] = df_carton.index
     res = res.rename(columns = {
         'Longueur': 'Longueur Article (cm)',
@@ -298,7 +299,7 @@ class Bin:
                 group_results.append((list(df_group.index), packed_group))
                 used_cartons.append(packed_group)
             else:
-                print("Aucun carton disponible pour emballer les articles : ", list(df_group.index))
+                #print("Aucun carton disponible pour emballer les articles : ", list(df_group.index))
                 done *= False
         # Enregistrer les résultats pour cette valeur d'alpha
         #results.append(group_results)

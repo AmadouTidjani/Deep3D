@@ -44,7 +44,7 @@ $(document).ready(function() {
                     item_L:'Longueur Article (cm)',
                     item_l:'Largeur Article (cm)', 
                     item_h:'Hauteur Article (cm)', 
-                    item_h:'Poids Article (kg)',
+                    item_p:'Poids Article (kg)',
                     item_qte:'Quantite Article', 
                     item_v:"Volume Article",
                     items_v:"Volume Articles",
@@ -56,7 +56,8 @@ $(document).ready(function() {
                     esp_inoc:'Espace inoccupé', 
                     w_inoc:'Poids inoccupé',
                     item_q:'Quantite_key',
-                    bin_q:'Quantite Carton'
+                    bin_q:'Quantite Carton',
+                    nb_non_pack:'non_pack_articles'
                 };
                 var tableHtml = '';
     
@@ -80,8 +81,21 @@ $(document).ready(function() {
                 tableHtml += '<div class="text-18 mb-4">Conteneur utilisé:</div>';
                 tableHtml += '<table class="form simple gray table-bordered">';
                 tableHtml += '<thead><tr><th>ID</th><th>Quantité</th></tr></thead>';
-                tableHtml += '<tbody><tr><td>' + data[0][headers1.id_bin] + '</td><td class="text-right pr-3">' + data[0][headers1.bin_q] + '</td></tr></tbody>';
-                tableHtml += '<tbody><tr><td>' + data[4][headers1.id_bin] + '</td><td class="text-right pr-3">' + data[4][headers1.bin_q] + '</td></tr></tbody>';
+                var uniqueData = [];
+                var seen = new Set();
+
+                data.forEach(function(item) {
+                    var id_bin = item[headers1.id_bin];
+                    if (!seen.has(id_bin)) {
+                    seen.add(id_bin);
+                    uniqueData.push(item);
+                    }
+                });
+                uniqueData.forEach(function(item) {
+                    tableHtml += '<tbody><tr><td>' + item[headers1.id_bin] + '</td><td class="text-right pr-3">' + item[headers1.bin_q] + '</td></tr></tbody>';
+                });
+                //tableHtml += '<tbody><tr><td>' + data[0][headers1.id_bin] + '</td><td class="text-right pr-3">' + data[0][headers1.bin_q] + '</td></tr></tbody>';
+                //tableHtml += '<tbody><tr><td>' + data[4][headers1.id_bin] + '</td><td class="text-right pr-3">' + data[4][headers1.bin_q] + '</td></tr></tbody>';
                 tableHtml += '</table>';
                 tableHtml += '</div>';
     
@@ -99,7 +113,7 @@ $(document).ready(function() {
 
                 data.forEach(function(item) {
                     var sku = item[headers1.sku];
-                    if (!seen.has(sku)) {
+                    if (!Array.isArray(sku) && !seen.has(sku)) {
                     seen.add(sku);
                     uniqueData.push(item);
                     }
@@ -115,10 +129,33 @@ $(document).ready(function() {
                 tableHtml += '</div>';
     
                 tableHtml += '<div class="table-wrapper">';
-                tableHtml += '<div class="text-18 mb-4">Articles non emballés:</div>';
+                tableHtml += '<div class="text-18 mb-4">Articles non emballés: ' + data[10][headers1.nb_non_pack] + '</div>';
                 tableHtml += '<table class="form simple gray table-bordered">';
+                var uniqueData = [];
+                var seen = new Set();
+
+                data.forEach(function(item) {
+                    var sku = item[headers1.sku];
+                    var item_q = item[headers1.item_q];
+                    
+                    if (Array.isArray(sku) && Array.isArray(item_q) && sku.length === item_q.length) {
+                        sku.forEach(function(skuElement, index) {
+                            var itemQElement = item_q[index];
+                            if (!seen.has(skuElement)) {
+                                seen.add(skuElement);
+                                uniqueData.push({
+                                    sku: skuElement,
+                                    item_q: itemQElement
+                                });
+                            }
+                        });
+                    }
+                });
                 tableHtml += '<thead><tr><th>ID</th><th>Quantité</th></tr></thead>';
-                tableHtml += '<tbody><tr><td>1</td><td class="text-right pr-3"></td></tr></tbody>';
+                uniqueData.forEach(function(item) {
+                    tableHtml += '<tr><td>' + item.sku + '</td><td class="text-right pr-3">' + item.item_q + '</td></tr>';
+                });
+                //tableHtml += '<tbody><tr><td>1</td><td class="text-right pr-3"></td></tr></tbody>';
                 tableHtml += '</table>';
                 tableHtml += '</div>';
 
