@@ -9,20 +9,33 @@ import warnings
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app/models_rl'))
 #from environnement.env import Environment
-from app.models_rl.environnement.env import Environment
+#from app.models_rl.environnement.env import Environment
 #from dqnet.agent import DQNAgent
-from app.models_rl.dqnet.agent import DQNAgent
+#from app.models_rl.dqnet.agent import DQNAgent
 import tensorflow as tf
 import numpy as np
 from time import time as t
 from time import sleep
 #from viz import *
-from app.models_rl.viz import *
+#from app.models_rl.viz import *
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gitviz'))
 #from gitviz.test import pack_viz
-from app.models_rl.gitviz.test import pack_viz
+#from app.models_rl.gitviz.test import pack_viz
 # Ignorer les avertissements "SettingWithCopyWarning"
+if os.getcwd().endswith('Deep3D'):
+    sys.path.append(os.path.abspath('.'))
+    from app.models_rl.viz import *
+    from app.models_rl.environnement.env import Environment
+    from app.models_rl.dqnet.agent import DQNAgent
+    from app.models_rl.gitviz.test import pack_viz
+# Check if the script is run from the 'models_rl' directory
+else:
+    sys.path.append(os.path.abspath('../..'))
+    from viz import *
+    from environnement.env import Environment
+    from dqnet.agent import DQNAgent
+    from gitviz.test import pack_viz
 warnings.filterwarnings('ignore')
 
 

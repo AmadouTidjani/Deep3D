@@ -229,7 +229,7 @@ def visualize_packing(df, id_carton=0):
     plt.savefig(f"viz_carton{id_carton}", bbox_inches='tight')
     plt.show()
 
-class Bin:
+class Bin1:
 
     def __init__(self, df_article, df_carton):
         self.alpha = 0.25
@@ -340,4 +340,90 @@ class Bin:
         # résultat d'emballage
         # Affichage des resultats
         return view(df, df_article, df_carton)
-    
+
+class Bin:
+
+    def __init__(self, df_article, df_carton):
+        self.alpha = 0.25
+        self.df_article = df_article
+        self.df_carton = df_carton
+
+    @staticmethod
+    def bp(a, b, df):
+        # Calculate absolute differences and indicator values
+        df['diff'] = np.abs(df['v'] - float(a))
+        df['indicator'] = (df['v'] > a) & (df['Poids_max'] > b)
+
+        # Multiply absolute differences and indicators
+        df['diff_indicator'] = df['diff'] * df['indicator']
+
+        # Filter by indicator and get the index of the minimum diff_indicator
+        filtered_df = df[df["indicator"] == 1]
+        if filtered_df.empty:
+            return None
+        return filtered_df['diff_indicator'].idxmin()
+
+    @staticmethod
+    def put(df_article, df_carton, alpha=0.25):
+        # Calculate volumes for articles and cartons
+        df_article["v"] = df_article["Longueur"] * df_article["Largeur"] * df_article["Hauteur"] * df_article["Quantite"]
+        df_carton["v"] = df_carton["Longueur"] * df_carton["Largeur"] * df_carton["Hauteur"]
+
+        used_cartons = []  # List to store used cartons
+        group_results = []  # List to store the results for each group
+
+        # Create random groups of articles based on alpha
+        n = len(df_article)
+        div = int((1 - alpha) * n)
+        if div == 0: div += 1
+
+        article_ids = df_article.index.tolist()
+        grouped_articles = []
+
+        while article_ids:
+            group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
+            grouped_articles.append(df_article.loc[group].copy())
+            article_ids = list(set(article_ids) - set(group))
+
+        for i, df_group in enumerate(grouped_articles):
+            # Calculate the total volume and weight for the group of articles
+            a_group = df_group["v"].sum()
+            b_group = df_group["Poids"].sum()
+
+            # Search for a carton to pack the group of articles
+            cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
+            packed_group = Bin.bp(a_group, b_group, cartons_except_used)
+
+            if packed_group is not None:
+                # Record the result for the group
+                group_results.append((list(df_group.index), packed_group))
+                used_cartons.append(packed_group)
+            else:
+                return group_results, False
+
+        return group_results, True
+
+    def pack(self):
+        df_article = self.df_article
+        df_carton = self.df_carton
+
+        for alpha in np.arange(0, 1.1, 0.1):
+            res, done = Bin.put(df_article, df_carton, alpha)
+
+            if done or alpha == 1.0:
+                c1 = []  # Article IDs
+                c2 = []  # Carton IDs
+                c3 = []  # Group of articles packed together
+
+                for x in res:
+                    for i in x[0]:
+                        c1.append(i)
+                        c2.append(x[1])
+                        c3.append(x[0])
+
+                # Create the resulting DataFrame
+                df = pd.DataFrame({'id_article': c1, 'id_carton': c2, 'pack_together': c3})
+                break
+
+        
+        return view(df, df_article, df_carton)

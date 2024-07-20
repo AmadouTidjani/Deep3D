@@ -669,7 +669,11 @@ def pack_articles():
 
     # Process and pack the articles using your Python logic
     pack_articles, non_pack_articles = model_pack_articles(articles)
+    ##
+    print("DataFrame Python \n ", pack_articles)
     result = pack_articles.to_dict(orient='records')
+    print("Structure Dict à envoyer à JS \n ", result)
+    
     dict_non_pack = {}
     if len(non_pack_articles)==0:
         dict_non_pack["non_pack_articles"] = 0
