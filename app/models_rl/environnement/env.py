@@ -143,8 +143,7 @@ class Environment:
         carton_L_l_h = np.sort(carton_L_l_h)
 
         condition_dimensions = np.sort(carton_L_l_h) > np.sort(article_L_l_h)
-        # index_sort_dim_article = np.argsort(article_L_l_h)
-        # index_sort_dim_carton = np.argsort(carton_L_l_h)
+        
         if False in condition_dimensions:
             return False
 
