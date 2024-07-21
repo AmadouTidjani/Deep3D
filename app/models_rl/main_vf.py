@@ -412,10 +412,11 @@ if __name__ == '__main__':
         #print("id_carton : ", res)
 
         ## Eval model
-        #pred = evaluate(env, agent, state_size, action_size)
+        pred = evaluate(env, agent, state_size, action_size)
         
-        #viz_result = view(pred, df_article, df_carton)
-        #print(viz_result)
+        viz_result = view(pred, df_article, df_carton)
+        print('Resultat model main_vf 418 \n')
+        print(viz_result)
         #print("===========")
 
         ### BIN PACK
@@ -427,12 +428,21 @@ if __name__ == '__main__':
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)'],
        right_on = ['Longueur_key','Largeur_key', 'Hauteur_key', 'Poids_key'])
         
+        res['Quantite_key'] = res.groupby(["key", "ID Carton"])["Quantite_key"].transform("sum")
+
+        print(res[["sku", 'ID Carton', 'Longueur Article (cm)',
+       'Largeur Article (cm)', 'Hauteur Article (cm)',"Volume Articles",
+       "Longueur Carton (cm)", 'Largeur Carton (cm)', 'Hauteur Carton (cm)',"Volume Carton",
+       'Espace inoccupé']])
+
         res = res.drop_duplicates(subset = ["key","ID Carton"])
         res = res[["sku", 'ID Carton', 'Longueur Article (cm)',
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
        'Quantite Article', "Volume Article",
        "Volume Articles", "Poids Articles", "Longueur Carton (cm)", 'Largeur Carton (cm)', 'Hauteur Carton (cm)', 'Prix', 'Type', "Volume Carton",
        'Espace inoccupé', 'Poids inoccupé', 'fragile']].copy()
+        
+        print(res)
         #======================================================================
         
         ### Non emballé articles

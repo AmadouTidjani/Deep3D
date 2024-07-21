@@ -88,6 +88,7 @@ def model_pack_articles(df_article, model_used=args.model_used):
     #########################################################        
     
     res = res.drop_duplicates(subset = ["key","ID Carton"])
+    res['Quantite_key'] = res.groupby(["key", "ID Carton"])["Quantite_key"].transform("sum")
     res = res[["sku", 'ID Carton', 'Longueur Article (cm)',
        'Largeur Article (cm)', 'Hauteur Article (cm)', 'Poids Article (kg)',
        'Quantite Article', "Volume Article",

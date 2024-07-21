@@ -341,6 +341,33 @@ class Bin1:
         # Affichage des resultats
         return view(df, df_article, df_carton)
 
+def cumul_articles(df_group):
+    # Initialize the total dimensions
+    total_length, total_width, total_height = 0, 0, 0
+    
+    # Initialize previous sorted dimensions
+    prev_dims = None
+
+    for index, row in df_group.iterrows():
+        current_dims = sorted([row['Longueur'], row['Largeur'], row['Hauteur']])
+        
+        #print(current_dims)
+        
+        if prev_dims is None:
+            # First iteration, set previous dimensions
+            prev_dims = current_dims
+        else:
+            # Sum the smallest dimensions
+            total_length = prev_dims[0] + current_dims[0]
+            total_width = max(total_width, prev_dims[1], current_dims[1])
+            total_height = max(total_height, prev_dims[2], current_dims[2])
+            
+            # Update previous dimensions
+            prev_dims = sorted([total_length, total_width, total_height])
+        
+    
+    return sorted(prev_dims, reverse = True)
+
 class Bin:
 
     def __init__(self, df_article, df_carton):
@@ -460,10 +487,13 @@ class Bin:
             group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
             grouped_articles.append(df_article.loc[group].copy())
             article_ids = list(set(article_ids) - set(group))
-
+        grouped_articles = []
+        for i in range(0, n, div):
+            grouped_articles.append(df_article.iloc[i:i+div].copy())
+            
         for i, df_group in enumerate(grouped_articles):
             # Calculate the total dimensions and weight for the group of articles
-            a_dims = [df_group["Longueur"].max(), df_group["Largeur"].max(), df_group["Hauteur"].max()]
+            a_dims = cumul_articles(df_group)#[df_group["Longueur"].max(), df_group["Largeur"].max(), df_group["Hauteur"].max()]
             a_weight = df_group["Poids"].sum()
 
             # Search for a carton to pack the group of articles
@@ -525,7 +555,7 @@ class Bin:
 
         for alpha in np.arange(0, 1.1, 0.1):
             res, done = Bin.put2(df_article, df_carton, alpha)
-
+            print("alpha : ", alpha)
             if done or alpha == 1.0:
                 c1 = []  # Article IDs
                 c2 = []  # Carton IDs
