@@ -19,7 +19,7 @@ def view(pred, df_article, df_carton):
 
     res["cumul_volume"] = res.groupby("id_carton")["article_volume"].transform("sum")
     res["cumul_poids"] = res.groupby("id_carton")["Poids_Qte"].transform("sum")
-    print("res : ", res[["Poids_Qte","cumul_poids", "id_carton"]])
+    
     df_carton["id"] = df_carton.index
     res = res.rename(columns = {
         'Longueur': 'Longueur Article (cm)',
@@ -349,7 +349,42 @@ class Bin:
         self.df_carton = df_carton
 
     @staticmethod
-    def bp(a, b, df):
+    def median_index(values):
+        sorted_indices = np.argsort(values)
+        median_idx = len(sorted_indices) // 2
+        return sorted_indices[median_idx]
+
+    @staticmethod
+    def bp(a_dims, a_weight, df_carton):
+        # a_dims is a sorted array of dimensions [Longueur, Largeur, Hauteur]
+        a_dims = sorted(a_dims)
+        
+        def calculate_diff(carton):
+            c_dims = sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])
+            
+            diffs = [float(c_dims[i] - a_dims[i]) for i in range(len(a_dims))]
+            return diffs
+
+        diffs_list = df_carton.apply(lambda carton: calculate_diff(carton), axis=1)
+        df_carton['diffs'] = diffs_list
+
+        # Filter cartons that can contain the article
+        df_carton['fits'] = df_carton.apply(
+            lambda carton: all(np.array(sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])) > np.array(a_dims)) 
+                           and carton['Poids_max'] > a_weight, axis=1)
+
+        # Calculate an indicator based on the diffs
+        df_carton['diff_indicator'] = df_carton.apply(lambda carton: max(calculate_diff(carton)) if carton['fits'] else np.inf, axis=1)
+
+        # Filter by indicator and get the index of the minimum diff_indicator
+        filtered_df = df_carton[df_carton["fits"] == True]
+        if filtered_df.empty:
+            return None
+
+        return filtered_df['diff_indicator'].idxmin()
+
+    @staticmethod
+    def bp1(a, b, df):
         # Calculate absolute differences and indicator values
         df['diff'] = np.abs(df['v'] - float(a))
         df['indicator'] = (df['v'] > a) & (df['Poids_max'] > b)
@@ -365,6 +400,87 @@ class Bin:
 
     @staticmethod
     def put(df_article, df_carton, alpha=0.25):
+        used_cartons = []  # List to store used cartons
+        group_results = []  # List to store the results for each group
+
+        # Create random groups of articles based on alpha
+        n = len(df_article)
+        div = int((1 - alpha) * n)
+        if div == 0: div += 1
+
+        article_ids = df_article.index.tolist()
+        grouped_articles = []
+
+        while article_ids:
+            group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
+            grouped_articles.append(df_article.loc[group].copy())
+            article_ids = list(set(article_ids) - set(group))
+
+        for i, df_group in enumerate(grouped_articles):
+            # Calculate the total dimensions and weight for the group of articles
+            lengths = df_group["Longueur"].values
+            widths = df_group["Largeur"].values
+            heights = df_group["Hauteur"].values
+            quantities = df_group["Quantite"].values
+
+            total_lengths = np.sum(np.sort(lengths)[:len(lengths)-1]) + np.max(lengths)
+            total_widths = np.sum(np.sort(widths)[:len(widths)-1]) + np.max(widths)
+            total_heights = np.sum(np.sort(heights)[:len(heights)-1]) + np.max(heights)
+
+            a_dims = [total_lengths, total_widths, total_heights]
+            a_weight = df_group["Poids"].sum()
+
+            # Search for a carton to pack the group of articles
+            cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
+            packed_group = Bin.bp(a_dims, a_weight, cartons_except_used)
+
+            if packed_group is not None:
+                # Record the result for the group
+                group_results.append((list(df_group.index), packed_group))
+                used_cartons.append(packed_group)
+            else:
+                return group_results, False
+
+        return group_results, True
+    
+    @staticmethod
+    def put2(df_article, df_carton, alpha=0.25):
+        used_cartons = []  # List to store used cartons
+        group_results = []  # List to store the results for each group
+
+        # Create random groups of articles based on alpha
+        n = len(df_article)
+        div = int((1 - alpha) * n)
+        if div == 0: div += 1
+
+        article_ids = df_article.index.tolist()
+        grouped_articles = []
+
+        while article_ids:
+            group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
+            grouped_articles.append(df_article.loc[group].copy())
+            article_ids = list(set(article_ids) - set(group))
+
+        for i, df_group in enumerate(grouped_articles):
+            # Calculate the total dimensions and weight for the group of articles
+            a_dims = [df_group["Longueur"].max(), df_group["Largeur"].max(), df_group["Hauteur"].max()]
+            a_weight = df_group["Poids"].sum()
+
+            # Search for a carton to pack the group of articles
+            cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
+            packed_group = Bin.bp(a_dims, a_weight, cartons_except_used)
+
+            if packed_group is not None:
+                # Record the result for the group
+                group_results.append((list(df_group.index), packed_group))
+                used_cartons.append(packed_group)
+            else:
+                return group_results, False
+
+        return group_results, True
+    
+    @staticmethod
+    def put1(df_article, df_carton, alpha=0.25):
         # Calculate volumes for articles and cartons
         df_article["v"] = df_article["Longueur"] * df_article["Largeur"] * df_article["Hauteur"] * df_article["Quantite"]
         df_carton["v"] = df_carton["Longueur"] * df_carton["Largeur"] * df_carton["Hauteur"]
@@ -408,7 +524,7 @@ class Bin:
         df_carton = self.df_carton
 
         for alpha in np.arange(0, 1.1, 0.1):
-            res, done = Bin.put(df_article, df_carton, alpha)
+            res, done = Bin.put2(df_article, df_carton, alpha)
 
             if done or alpha == 1.0:
                 c1 = []  # Article IDs

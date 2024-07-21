@@ -8,20 +8,15 @@ import collections
 import warnings
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app/models_rl'))
-#from environnement.env import Environment
-#from app.models_rl.environnement.env import Environment
-#from dqnet.agent import DQNAgent
-#from app.models_rl.dqnet.agent import DQNAgent
+
 import tensorflow as tf
 import numpy as np
 from time import time as t
 from time import sleep
-#from viz import *
-#from app.models_rl.viz import *
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gitviz'))
-#from gitviz.test import pack_viz
-#from app.models_rl.gitviz.test import pack_viz
+
 # Ignorer les avertissements "SettingWithCopyWarning"
 if os.getcwd().endswith('Deep3D'):
     sys.path.append(os.path.abspath('.'))
@@ -424,8 +419,6 @@ if __name__ == '__main__':
         #print("===========")
 
         ### BIN PACK
-        print("Avant BIN ")
-        print(df_article)
         bin = Bin(df_article, df_carton)
         res = bin.pack()
         print(res)
@@ -441,7 +434,7 @@ if __name__ == '__main__':
        "Volume Articles", "Poids Articles", "Longueur Carton (cm)", 'Largeur Carton (cm)', 'Hauteur Carton (cm)', 'Prix', 'Type', "Volume Carton",
        'Espace inoccupé', 'Poids inoccupé', 'fragile']].copy()
         #======================================================================
-        print(res)
+        
         ### Non emballé articles
         sku_articles_init = list(pd.unique(df_key.sku))
         sku_articles_pack = list(pd.unique(res.sku))
