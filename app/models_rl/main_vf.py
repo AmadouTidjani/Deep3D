@@ -417,6 +417,8 @@ if __name__ == '__main__':
         viz_result = view(pred, df_article, df_carton)
         print('Resultat model main_vf 418 \n')
         print(viz_result)
+        #pack_viz(pred, df_article, df_carton)
+        print("=================")
         #print("===========")
 
         ### BIN PACK

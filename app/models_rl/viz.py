@@ -61,8 +61,163 @@ def view(pred, df_article, df_carton):
         "poids_inocc": "Poids inoccupé"
     })
     return res
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import imageio
+import os
 
 def visualize_packing1(df):
+    list_carton = list(pd.unique(df['ID Carton']))
+    for id_carton in list_carton:
+        df_temp = df[df['ID Carton'] == id_carton].copy()
+        df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
+        df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
+        
+        visualize_packing(df_temp, id_carton)
+
+def visualize_packing(df, id_carton=0):
+    length = df['Longueur Carton (cm)'].iloc[0]
+    width = df['Largeur Carton (cm)'].iloc[0]
+    height = df['Hauteur Carton (cm)'].iloc[0]
+    
+    carton_length = max(length, width, height)
+    carton_width = min(length, width, height)
+    carton_height = np.median([length, width, height])
+
+    articles = list(df[['Longueur Article (cm)', 'Largeur Article (cm)', 'Hauteur Article (cm)']].itertuples(index=False, name=None))
+
+    # Attribuer des couleurs uniques aux dimensions uniques des articles
+    unique_dims = list(set(articles))
+    colors = plt.cm.get_cmap('hsv', len(unique_dims))
+    color_dict = {dims: colors(i) for i, dims in enumerate(unique_dims)}
+    
+    # Fonction pour dessiner un parallélépipède avec bordure noire
+    def draw_parallelepiped(ax, x, y, z, dx, dy, dz, color='b', alpha=0.5):
+        vertices = [
+            [x, y, z],
+            [x + dx, y, z],
+            [x + dx, y + dy, z],
+            [x, y + dy, z],
+            [x, y, z + dz],
+            [x + dx, y, z + dz],
+            [x + dx, y + dy, z + dz],
+            [x, y + dy, z + dz]
+        ]
+
+        faces = [
+            [0, 1, 2, 3],
+            [4, 5, 6, 7],
+            [0, 1, 5, 4],
+            [2, 3, 7, 6],
+            [1, 2, 6, 5],
+            [4, 7, 3, 0]
+        ]
+
+        poly3d = [[vertices[vert_id] for vert_id in face] for face in faces]
+        ax.add_collection3d(Poly3DCollection(poly3d, facecolors=color, linewidths=1, edgecolors='black', alpha=alpha))
+
+    images = []  # Liste pour stocker les images de chaque étape
+    step_folder = "steps"
+    os.makedirs(step_folder, exist_ok=True)  # Créer un dossier pour les étapes
+
+    # Créer une nouvelle figure
+    fig = plt.figure(figsize=(21, 7))  # Ajusté pour inclure trois sous-graphes
+    views = [(20, 30), (90, 0), (0, 90)]  # Angles de vue pour les trois perspectives
+    titles = ['Vue de face', 'Vue d\'en bas', 'Vue de profil']
+
+    for j, (elev, azim) in enumerate(views):
+        ax = fig.add_subplot(131 + j, projection='3d')
+        draw_parallelepiped(ax, 0, 0, 0, carton_length, carton_width, carton_height, color='#7B68EE', alpha=0.1)
+        ax.set_xlim(0, carton_length)
+        ax.set_ylim(0, carton_width)
+        ax.set_zlim(0, carton_height)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+        ax.view_init(elev=elev, azim=azim)
+        ax.set_title(titles[j])
+
+    plt.suptitle(f'Carton {id_carton} - Étape 0')
+    image_path = os.path.join(step_folder, f"step_{id_carton}_0.png")
+    plt.savefig(image_path, bbox_inches='tight')
+    images.append(imageio.imread(image_path))
+    plt.close(fig)
+
+    # Garder la trace de l'espace disponible dans le carton
+    available_space = [(0, 0, 0, carton_length, carton_width, carton_height)]
+    placed_articles = []
+
+    # Fonction pour trouver la meilleure position pour un article
+    def find_best_position(article, spaces):
+        best_space_index = -1
+        max_difference = -1
+        best_position = None
+
+        for i, (sx, sy, sz, sl, sw, sh) in enumerate(spaces):
+            # Vérifier si l'article peut rentrer dans cet espace
+            if article[0] <= sl and article[1] <= sw and article[2] <= sh:
+                # Calculer les différences d'espace
+                diff_x = sl - article[0]
+                diff_y = sw - article[1]
+                diff_z = sh - article[2]
+                min_diff = min(diff_x, diff_y, diff_z)
+
+                if min_diff > max_difference:
+                    max_difference = min_diff
+                    best_space_index = i
+                    best_position = (sx, sy, sz)
+
+        return best_space_index, best_position
+
+    # Placer les articles
+    for i, article in enumerate(articles):
+        best_space_index, best_position = find_best_position(article, available_space)
+
+        if best_position is None:
+            print(f"Article {i} ne rentre pas dans le carton.")
+            break
+
+        x_pos, y_pos, z_pos = best_position
+        placed_articles.append((x_pos, y_pos, z_pos, article[0], article[1], article[2], color_dict[article]))
+
+        fig = plt.figure(figsize=(21, 7))  # Ajusté pour inclure trois sous-graphes
+
+        for j, (elev, azim) in enumerate(views):
+            ax = fig.add_subplot(131 + j, projection='3d')
+            draw_parallelepiped(ax, 0, 0, 0, carton_length, carton_width, carton_height, color='#7B68EE', alpha=0.1)
+
+            # Dessiner tous les articles placés jusqu'à présent
+            for (px, py, pz, pdx, pdy, pdz, color) in placed_articles:
+                draw_parallelepiped(ax, px, py, pz, pdx, pdy, pdz, color=color)
+
+            # Dessiner une flèche indiquant l'emplacement du nouvel article
+            if j == 0:  # Dessiner la flèche seulement dans la vue de face
+                ax.quiver(x_pos, y_pos, z_pos, article[0], article[1], article[2], color='r', linewidth=2, arrow_length_ratio=0.1)
+
+            ax.set_xlim(0, carton_length)
+            ax.set_ylim(0, carton_width)
+            ax.set_zlim(0, carton_height)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_zticks([])
+            ax.view_init(elev=elev, azim=azim)
+            ax.set_title(titles[j])
+
+        plt.suptitle(f'Carton {id_carton} - Étape {i + 1}')
+        image_path = os.path.join(step_folder, f"step_{id_carton}_{i + 1}.png")
+        plt.savefig(image_path, bbox_inches='tight')
+        images.append(imageio.imread(image_path))
+        plt.close(fig)
+
+    # Créer et sauvegarder le GIF
+    gif_path = f"packing_carton{id_carton}.gif"
+    imageio.mimsave(gif_path, images, duration=1)
+    print(f"GIF enregistré : {gif_path}")
+
+
+def visualize_packing1_(df):
     list_carton = list(pd.unique(df['ID Carton']))
     for id_carton in list_carton:
         df_temp = df[df['ID Carton']==id_carton].copy()
@@ -70,7 +225,7 @@ def visualize_packing1(df):
         
         visualize_packing(df_temp, id_carton)
 
-def visualize_packing(df, id_carton=0):
+def visualize_packing_(df, id_carton=0):
     length = df['Longueur Carton (cm)'].iloc[0]
     width = df['Largeur Carton (cm)'].iloc[0]
     height = df['Hauteur Carton (cm)'].iloc[0]
