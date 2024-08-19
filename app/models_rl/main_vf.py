@@ -18,7 +18,7 @@ from time import sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gitviz'))
 
 # Ignorer les avertissements "SettingWithCopyWarning"
-if os.getcwd().endswith('flaskblog'):
+if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
     sys.path.append(os.path.abspath('.'))
     from app.models_rl.viz import *
     from app.models_rl.environnement.env import Environment
