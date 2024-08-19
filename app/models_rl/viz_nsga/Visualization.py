@@ -2,7 +2,12 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from matplotlib.animation import FuncAnimation
 import numpy as np
-from Box import *
+import os
+if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
+    from app.models_rl.viz_nsga.Box import *
+else:
+    from viz_nsga.Box import *
+
 
 def visualize_solution(bin, boxes):
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']

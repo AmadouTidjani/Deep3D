@@ -1,7 +1,14 @@
-from Helpers import *
-from Visualization import *
+import os
+if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
+    from app.models_rl.viz_nsga.Helpers import *
+    from app.models_rl.viz_nsga.Visualization import *
+    from app.models_rl.viz_nsga.Evaluation import SpacePenality, PriorityPenality, WeightFitness
+else:
+    from viz_nsga.Helpers import *
+    from viz_nsga.Visualization import *
+    from viz_nsga.Evaluation import SpacePenality, PriorityPenality, WeightFitness
+
 from deap import creator, algorithms, tools, base
-from Evaluation import SpacePenality, PriorityPenality, WeightFitness
 import random
 
 # Could not find a way to stop the animation over write, but you can get the graph while the program is running
@@ -391,6 +398,86 @@ def PlotDataList(dataList):
 
     plt.close()
 
+def visualize_packing1(df):
+    list_carton = list(pd.unique(df['ID Carton']))
+    for id_carton in list_carton:
+        df_temp = df[df['ID Carton'] == id_carton].copy()
+        df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
+        df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
+       
+        #visualize_packing(df_temp, id_carton)
+        visualize_packing_nsga(df_temp, id_carton)
+
+def visualize_packing_nsga(df, id):
+    global boxes
+    global x1, x2, x3
+
+    # Extraire les dimensions du carton pour le carton en question
+    container_width = float(df['Longueur Carton (cm)'].iloc[0])
+    container_height = float(df['Hauteur Carton (cm)'].iloc[0])
+    container_depth = float(df['Largeur Carton (cm)'].iloc[0])
+
+    # Initialiser la liste des boîtes
+    boxes = []
+
+    # Lire les dimensions et priorités des boîtes depuis le DataFrame
+    for i, row in df.iterrows():
+        w = float(row['Longueur Article (cm)'])
+        h = float(row['Hauteur Article (cm)'])
+        d = float(row['Largeur Article (cm)'])
+        priority = int(row['priority']) if 'priority' in df.columns else i  # Utiliser la colonne priority si elle existe, sinon utiliser l'index comme priorité
+        boxes.append(Box(i + 1, w, h, d, 0, priority))
+
+    # Trier les boîtes par priorité si nécessaire
+    boxes.sort(key=lambda x: x.priority)
+
+    # Créer une instance de Helper avec les dimensions du carton extraites
+    helper = Helper(container_width, container_height, container_depth)
+
+    # Appeler la fonction principale et visualiser
+    pop, stats, hallOfFame, hallOfShame = main()
+    pop.sort(key=lambda x: x.fitness, reverse=True)
+
+    # Sélectionner le meilleur et le pire individu
+    best_ind = hallOfFame[-1]
+    worst_ind = hallOfShame[0]
+
+    # Emballer la solution et visualiser
+    containers = helper.pack_solution(worst_ind, copy.deepcopy(boxes))
+    animate_containers(containers, f"Viz_carton{id}")
+
+def visualize_packing_nsga1(df, id):
+    global boxes
+    global x1, x2, x3
+    # for three different boxes number
+
+    dataList = {
+        "bestFor60BoxesSpaceFitness": [],
+        "worstFor60BoxesSpaceFitness": [],
+        "bestFor60BoxespriorityFitness": [],
+        "worstFor60BoxespriorityFitness": [],
+        "bestFor120BoxesSpaceFitness": [],
+        "worstFor120BoxesSpaceFitness": [],
+        "bestFor120BoxespriorityFitness": [],
+        "worstFor120BoxespriorityFitness": [],
+        "bestFor180BoxesSpaceFitness": [],
+        "worstFor180BoxesSpaceFitness": [],
+        "bestFor180BoxespriorityFitness": [],
+        "worstFor180BoxespriorityFitness": []}
+
+    #### Test ours
+    boxNumber = 170
+    helper = Helper(120, 120, 220)
+    #boxes = helper.create_boxes(boxNumber)
+    boxes = helper.create_boxes("items.csv")
+    pop, stats, hallOfFame, hallOfShame = main()
+    pop.sort(key=lambda x: x.fitness, reverse=True)
+    # best individual
+    best_ind = hallOfFame[-1]
+    worst_ind = hallOfShame[0]
+
+    containers = helper.pack_solution(worst_ind, copy.deepcopy(boxes))
+    animate_containers(containers, "Viz_emballage1")
 
 if __name__ == "__main__":
     np.random.seed(22)

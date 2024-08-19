@@ -2,7 +2,11 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import random
-#from viz_nsga.Main import visualize_packing_nsga
+import os
+if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
+    from app.models_rl.viz_nsga.Main import visualize_packing_nsga
+else:
+    from viz_nsga.Main import visualize_packing_nsga
 
 def view(pred, df_article, df_carton): 
     # Vérifier si pred est un DataFrame
@@ -70,8 +74,8 @@ def visualize_packing1(df):
         df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
         df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
        
-        visualize_packing(df_temp, id_carton)
-        #visualize_packing_nsga(df_temp, id_carton)
+        #visualize_packing(df_temp, id_carton)
+        visualize_packing_nsga(df_temp, id_carton)
 
 def visualize_packing(df, id_carton):
     length = df['Longueur Carton (cm)'].iloc[0]

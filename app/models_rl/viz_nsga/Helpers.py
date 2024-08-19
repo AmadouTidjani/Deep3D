@@ -1,7 +1,14 @@
 import numpy as np
-from Heuristics import *
-from Container import *
-from Box import *
+import os
+if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
+    from app.models_rl.viz_nsga.Heuristics import *
+    from app.models_rl.viz_nsga.Container import *
+    from app.models_rl.viz_nsga.Box import *
+else:
+    from viz_nsga.Heuristics import *
+    from viz_nsga.Container import *
+    from viz_nsga.Box import *
+
 import csv
 
 

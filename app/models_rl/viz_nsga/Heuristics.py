@@ -1,5 +1,9 @@
 import copy
-from EMS import *
+import os
+if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
+    from app.models_rl.viz_nsga.EMS import *
+else:
+    from viz_nsga.EMS import *
 
 
 def placement_heuristic(box, EMSs):
