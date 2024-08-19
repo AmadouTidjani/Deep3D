@@ -130,7 +130,7 @@ def train1(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
 
 from time import time
 
-def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
+def train(env, agent, action_size, args, episodes = 20, batch_size =2, plot=True):
     state_size = len(env.items_data(0))
     scores = []
     times = []
@@ -139,7 +139,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
     remember_times = []
     replay_times = []
 
-    for e in range(episodes):
+    for e in range(args.episodes):
         state = env.reset()
         val_state = env.items_data(state)
         val_state = tf.convert_to_tensor(val_state, dtype=tf.float32) 
@@ -162,12 +162,13 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
             
             start_step = time()
             next_state, reward, lost_space, box_volume, article_volume, done, info = env.step(action)
+            score += reward
             step_times.append(time() - start_step)
             
             if len(info) == 0:
                 action_contraint = action
                 constraint = True
-                score += reward
+                #score += reward
                 list_states = list(range(action_size))
             else:
                 if action in list_states:list_states.remove(action)
@@ -194,12 +195,16 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
             
         scores.append(score)
         times.append(time() - start)
+        """
         if e >= 10 and e % 5 == 0:
             savepath = "save/model_" + str(e) + ".weights.h5" 
             agent.save(savepath)
-    
+        """
     agent.save("save/model.weights.h5")
-    
+    ### Comparaison des modèles ""
+    filename_prefix = f"save/lr{args.learning_rate}_ep{args.episodes}_ed{args.epsilon_decay}"
+    np.save(f"{filename_prefix}_scores.npy", scores)
+    np.save(f"{filename_prefix}_times.npy", times)
     # Afficher les graphiques de performance
     if plot:
         plt.figure(figsize=(12, 6))
@@ -207,7 +212,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
         plt.xlabel('Episodes')
         plt.ylabel('Reward')
         plt.title('Espace occupé par episode')
-        plt.savefig('save/train.png')
+        plt.savefig(f'save/train.png')
         
         plt.figure(figsize=(12, 6))
         plt.plot(times)
@@ -216,34 +221,7 @@ def train(env, agent, action_size, episodes = 20, batch_size =2, plot=True):
         plt.title('Temps par episode')
         plt.savefig('save/train_times.png')
         
-        plt.figure(figsize=(12, 6))
-        plt.plot(act_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for agent.act')
-        plt.savefig('save/act_times.png')
         
-        plt.figure(figsize=(12, 6))
-        plt.plot(step_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for env.step')
-        plt.savefig('save/step_times.png')
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(remember_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for agent.remember')
-        plt.savefig('save/remember_times.png')
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(replay_times)
-        plt.xlabel('Steps')
-        plt.ylabel('Time (s)')
-        plt.title('Time for agent.replay')
-        plt.savefig('save/replay_times.png')
-
 def evaluate(env, agent, state_size):
     # Use the trained model to make decisions in the environment
     state = env.reset()
@@ -366,7 +344,7 @@ if __name__ == '__main__':
         new_names = {'longueur': 'Longueur', 'largeur': 'Largeur',
         "hauteur": "Hauteur", "fragile":"Fragile", "poids": "Poids", "quantite": "Quantite"}
         df_article = df_article.rename(columns=new_names)
-        df_article = df_article[['Longueur', 'Largeur', 'Hauteur', 'Fragile' 'Poids', 'Quantite']]
+        df_article = df_article[['Longueur', 'Largeur', 'Hauteur', 'Poids', 'Quantite']]
         df_article = df_article.loc[df_article.index.repeat(df_article['Quantite'])].reset_index(drop=True)
         df_article['Quantite'] = 1
         print( "Nombre Articles : ", len(df_article)) 
@@ -387,7 +365,7 @@ if __name__ == '__main__':
         action_size = len(df_carton)
         agent = DQNAgent(state_size, action_size, args)
 
-        train(env, agent, action_size, episodes=args.episodes)
+        train(env, agent, action_size, args = args, episodes=args.episodes)
     
     if args.test and not args.train:
         print("=============== Test modèle : ====================\n\n")
