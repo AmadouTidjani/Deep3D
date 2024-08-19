@@ -190,9 +190,9 @@ $(document).ready(function() {
                 tableHtml += '<i class="fas fa-eye text-secondary pr-1 pl-2"></i> Voir l\'emballage'; 
                 tableHtml += '</a>';
                 tableHtml += '<div class="d-flex my-3 py-2 bg-light border border-secondary-light rounded align-items-center">';
-                tableHtml += '<iframe src="static/images/images_emballage/viz_carton' + data[0][headers1.id_bin] + '.html" class="text-nowrap" data-images-box-id="#box1" style="width:850px; height:850px; border:none;"></iframe>';
+                //tableHtml += '<iframe src="static/images/images_emballage/viz_carton' + data[0][headers1.id_bin] + '.html" class="text-nowrap" data-images-box-id="#box1" style="width:850px; height:850px; border:none;"></iframe>';
 
-                //tableHtml += '<img src="static/images/images_emballage/animation'+data[0][headers1.id_bin]+'.gif" class="text-nowrap" data-images-box-id="#box1" style="text-decoration: none; color: #49495e; width:100%; height:800px;">';
+                tableHtml += '<img src="static/images/images_emballage/viz_carton'+data[0][headers1.id_bin]+'.GIF" class="text-nowrap" data-images-box-id="#box1" style="text-decoration: none; color: #49495e; width:100%; height:800px;">';
 
                 //tableHtml += '<img src="static/images/images_emballage/viz_carton'+data[0][headers1.id_bin]+'.png" class="text-nowrap" data-images-box-id="#box1" style="text-decoration: none; color: #49495e; width:100%; height:800px;">';
                 

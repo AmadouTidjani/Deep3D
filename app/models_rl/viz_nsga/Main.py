@@ -19,9 +19,9 @@ global boxes
 global helper
 
 
-def main():
+def main(helper):
     # global variables
-    global helper
+    #global helper
     global boxes
     # helper = Helper(110, 110, 200)
     # boxes = helper.create_boxes(120)
@@ -398,15 +398,7 @@ def PlotDataList(dataList):
 
     plt.close()
 
-def visualize_packing1(df):
-    list_carton = list(pd.unique(df['ID Carton']))
-    for id_carton in list_carton:
-        df_temp = df[df['ID Carton'] == id_carton].copy()
-        df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
-        df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
-       
-        #visualize_packing(df_temp, id_carton)
-        visualize_packing_nsga(df_temp, id_carton)
+
 
 def visualize_packing_nsga(df, id):
     global boxes
@@ -435,7 +427,7 @@ def visualize_packing_nsga(df, id):
     helper = Helper(container_width, container_height, container_depth)
 
     # Appeler la fonction principale et visualiser
-    pop, stats, hallOfFame, hallOfShame = main()
+    pop, stats, hallOfFame, hallOfShame = main(helper)
     pop.sort(key=lambda x: x.fitness, reverse=True)
 
     # Sélectionner le meilleur et le pire individu
@@ -444,7 +436,7 @@ def visualize_packing_nsga(df, id):
 
     # Emballer la solution et visualiser
     containers = helper.pack_solution(worst_ind, copy.deepcopy(boxes))
-    animate_containers(containers, f"Viz_carton{id}")
+    animate_containers(containers, f"app/static/images/images_emballage/viz_carton{id}")
 
 def visualize_packing_nsga1(df, id):
     global boxes
