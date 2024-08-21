@@ -405,30 +405,31 @@ def visualize_packing_nsga(df, id):
     global x1, x2, x3
 
     # Extraire les dimensions du carton pour le carton en question
-    container_width = float(df['Longueur Carton (cm)'].iloc[0])
+    container_width = float(df['Largeur Carton (cm)'].iloc[0])
     container_height = float(df['Hauteur Carton (cm)'].iloc[0])
-    container_depth = float(df['Largeur Carton (cm)'].iloc[0])
+    container_depth = float(df['Longueur Carton (cm)'].iloc[0])
 
     # Initialiser la liste des boîtes
     boxes = []
 
     # Lire les dimensions et priorités des boîtes depuis le DataFrame
-    for i, row in df.iterrows():
-        w = float(row['Longueur Article (cm)'])
+    for i, row in df.iterrows():        
+        w = float(row['Largeur Article (cm)'])
         h = float(row['Hauteur Article (cm)'])
-        d = float(row['Largeur Article (cm)'])
+        d = float(row['Longueur Article (cm)'])
         priority = int(row['priority']) if 'priority' in df.columns else i  # Utiliser la colonne priority si elle existe, sinon utiliser l'index comme priorité
-        boxes.append(Box(i + 1, w, h, d, 0, priority))
+        boxes.append(Box(i + 1, d, h, w, 0, priority))
 
     # Trier les boîtes par priorité si nécessaire
     boxes.sort(key=lambda x: x.priority)
 
     # Créer une instance de Helper avec les dimensions du carton extraites
-    helper = Helper(container_width, container_height, container_depth)
+    #helper = Helper( container_depth, container_height,container_width)
+    helper = Helper(container_width, container_depth, container_height)
 
     # Appeler la fonction principale et visualiser
     pop, stats, hallOfFame, hallOfShame = main(helper)
-    pop.sort(key=lambda x: x.fitness, reverse=True)
+    pop.sort(key = lambda x: x.fitness, reverse = True)
 
     # Sélectionner le meilleur et le pire individu
     best_ind = hallOfFame[-1]
@@ -463,7 +464,7 @@ def visualize_packing_nsga1(df, id):
     #boxes = helper.create_boxes(boxNumber)
     boxes = helper.create_boxes("items.csv")
     pop, stats, hallOfFame, hallOfShame = main()
-    pop.sort(key=lambda x: x.fitness, reverse=True)
+    pop.sort(key = lambda x: x.fitness, reverse = True)
     # best individual
     best_ind = hallOfFame[-1]
     worst_ind = hallOfShame[0]

@@ -23,14 +23,12 @@ if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
     from app.models_rl.viz import *
     from app.models_rl.environnement.env import Environment
     from app.models_rl.dqnet.agent import DQNAgent
-    from app.models_rl.gitviz.test import pack_viz
 # Check if the script is run from the 'models_rl' directory
 else:
     sys.path.append(os.path.abspath('../..'))
     from viz import *
     from environnement.env import Environment
     from dqnet.agent import DQNAgent
-    from gitviz.test import pack_viz
 warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(description = 'Train or test neural net')
@@ -259,7 +257,7 @@ def evaluate(env, agent, state_size):
     return pd.DataFrame(matching, columns = ['id_article', 'id_carton'])
 
 
-def test(env, agent, action_size, episodes = 10, plot = True):
+def test(env, agent, action_size, args, episodes = 10, plot = True):
     state_size = len(env.items_data(0))
     #action_size = len(test_cartons_df)
     Q = np.zeros((state_size, action_size))
@@ -268,13 +266,13 @@ def test(env, agent, action_size, episodes = 10, plot = True):
     scores = []
     times = []
 
-    for e in range(episodes):
+    for e in range(args.episodes):
         start = t()
         state = env.reset()
         val_state = env.items_data(state)
         val_state = tf.convert_to_tensor(val_state, dtype=tf.float32)
         val_state = np.reshape(val_state, [1, state_size])
-        score = []
+        score = 0#[]
 
         done = False
         constraint = False
@@ -287,11 +285,12 @@ def test(env, agent, action_size, episodes = 10, plot = True):
                 action = agent.act(val_state)
             
             next_state, reward, lost_space, box_volume, article_volume, done, info = env.step(action)
+            score += reward 
             
             if len(info)==0:
                 Q[state, action]+=1
                 action_contraint = action
-                score.append(reward)
+                #score.append(reward)
                 constraint = True
             else : 
                 constraint = False
@@ -302,7 +301,8 @@ def test(env, agent, action_size, episodes = 10, plot = True):
                 next_val_state = np.reshape(next_val_state, [1, state_size])
                 val_state = next_val_state
             else:
-                scores.append(np.mean(score))
+                #scores.append(np.mean(score))
+                scores.append(score)
                 print(f"Episode: {e}/{episodes}, Score: {score}")
                 break
         times.append(t()-start)
@@ -311,6 +311,9 @@ def test(env, agent, action_size, episodes = 10, plot = True):
     average_score = np.mean(scores)
     print(f"\n\nAverage Score over {episodes} episodes: {average_score}")
     
+    filename_prefix = f"save/test_lr{args.learning_rate}_ep{args.episodes}_ed{args.epsilon_decay}"
+    np.save(f"{filename_prefix}_scores.npy", scores)
+    np.save(f"{filename_prefix}_times.npy", times)
     
     # Afficher les graphiques de performance
     if plot:
@@ -327,7 +330,7 @@ def test(env, agent, action_size, episodes = 10, plot = True):
         plt.xlabel('Episodes')
         plt.ylabel('Time (s)')
         plt.title('Temps par episode')
-        plt.savefig('save/times.png')
+        plt.savefig('save/test_times.png')
         #plt.show()
 
     
@@ -369,7 +372,7 @@ if __name__ == '__main__':
     
     if args.test and not args.train:
         print("=============== Test modèle : ====================\n\n")
-        """
+        
         df_article = pd.read_csv("data/articles_data.csv")
         new_names = {'longueur': 'Longueur', 'largeur': 'Largeur',
         "hauteur": "Hauteur", "poids": "Poids", "quantite": "Quantite"}
@@ -407,12 +410,12 @@ if __name__ == '__main__':
         state_size = len(env.items_data(0))  #env.get_state_size()
         action_size = len(df_carton)
         agent = DQNAgent(state_size, action_size, args)
-        print(agent._build_model().summary())
-        agent.load("save/model.weights.h5")
+        #print(agent._build_model().summary())
+        agent.load(f"save/model.weights.h5")
 
-        #res = test(env, agent, action_size, 20)
+        res = test(env, agent, action_size, args, 20)
         #print("id_carton : ", res)
-
+        """
         ## Eval model
         pred = evaluate(env, agent, state_size)
         
@@ -443,5 +446,4 @@ if __name__ == '__main__':
 
         ### 
         #df_carton['id_carton'] = df_carton.index
-        #df_article['id_article'] = df_article.index
-        #pack_viz(viz_result, df_article, df_carton)"""
+        #df_article['id_article'] = df_article.index"""

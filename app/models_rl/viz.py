@@ -74,8 +74,8 @@ def visualize_packing1(df):
         df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
         df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
        
-        #visualize_packing(df_temp, id_carton)
-        visualize_packing_nsga(df_temp, id_carton)
+        visualize_packing(df_temp, id_carton)
+        #visualize_packing_nsga(df_temp, id_carton)
 
 def visualize_packing(df, id_carton):
     length = df['Longueur Carton (cm)'].iloc[0]
