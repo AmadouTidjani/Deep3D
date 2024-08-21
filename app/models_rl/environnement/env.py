@@ -101,9 +101,6 @@ class Environment:
         ### Very important : bin sizes update 
         
         self.cartons_df.iloc[action,:] = [values_result[idx_max],values_carton[idx_moyen], values_carton[idx_min],
-                                        #float(chosen_carton["Longueur"]) - float(article['Quantite']*article['Longueur']),\
-                                        #  float(chosen_carton["Largeur"]) - float(article['Quantite']*article['Largeur']),\
-                                        #  float(chosen_carton["Hauteur"]) - float(article['Quantite']*article['Hauteur']),\
                                           float(chosen_carton["Poids_max"]) - float(article['Quantite']*article['Poids']),\
                                           float(chosen_carton["Prix"]),\
                                           int(chosen_carton["Quantite"]),\

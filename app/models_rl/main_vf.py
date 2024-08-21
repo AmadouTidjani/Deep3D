@@ -413,8 +413,10 @@ if __name__ == '__main__':
         #print(agent._build_model().summary())
         agent.load(f"save/model.weights.h5")
 
-        res = test(env, agent, action_size, args, 20)
+        #res = test(env, agent, action_size, args, 20)
         #print("id_carton : ", res)
+        bin = Bin(df_article[0:2], df_carton[0:5])
+        res = bin.pack()
         """
         ## Eval model
         pred = evaluate(env, agent, state_size)
@@ -444,6 +446,4 @@ if __name__ == '__main__':
         #======================================================================
         print(res)
 
-        ### 
-        #df_carton['id_carton'] = df_carton.index
-        #df_article['id_article'] = df_article.index"""
+        """

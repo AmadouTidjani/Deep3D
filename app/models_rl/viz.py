@@ -73,7 +73,6 @@ def visualize_packing1(df):
         df_temp = df[df['ID Carton'] == id_carton].copy()
         df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
         df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
-       
         visualize_packing(df_temp, id_carton)
         #visualize_packing_nsga(df_temp, id_carton)
 
@@ -378,24 +377,26 @@ class Bin:
             c_dims = sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])
             
             diffs = [float(c_dims[i] - a_dims[i]) for i in range(len(a_dims))]
-            return diffs
+            result = np.array(diffs)
+            return np.prod(result)
 
         diffs_list = df_carton.apply(lambda carton: calculate_diff(carton), axis=1)
         df_carton['diffs'] = diffs_list
 
         # Filter cartons that can contain the article
         df_carton['fits'] = df_carton.apply(
-            lambda carton: all(np.array(sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])) > np.array(a_dims)) 
-                           and carton['Poids_max'] > a_weight, axis=1)
+            lambda carton: all(np.array(sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])) >= np.array(a_dims)) 
+                           and carton['Poids_max'] >= a_weight, axis=1)
 
+        
         # Calculate an indicator based on the diffs
-        df_carton['diff_indicator'] = df_carton.apply(lambda carton: max(calculate_diff(carton)) if carton['fits'] else np.inf, axis=1)
+        df_carton['diff_indicator'] = df_carton.apply(lambda carton: calculate_diff(carton) if carton['fits'] else np.inf, axis=1)
 
         # Filter by indicator and get the index of the minimum diff_indicator
         filtered_df = df_carton[df_carton["fits"] == True]
         if filtered_df.empty:
             return None
-
+            
         return filtered_df['diff_indicator'].idxmin()
 
     @staticmethod
@@ -571,7 +572,7 @@ class Bin:
 
         for alpha in np.arange(0, 1.1, 0.1):
             res, done = Bin.put2(df_article, df_carton, alpha)
-            print("alpha : ", alpha)
+            #print("alpha : ", alpha)
             if done or alpha == 1.0:
                 c1 = []  # Article IDs
                 c2 = []  # Carton IDs
