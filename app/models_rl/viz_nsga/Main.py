@@ -437,7 +437,8 @@ def visualize_packing_nsga(df, id):
 
     # Emballer la solution et visualiser
     containers = helper.pack_solution(worst_ind, copy.deepcopy(boxes))
-    animate_containers(containers, f"app/static/images/images_emballage/viz_carton{id}")
+    #animate_containers(containers, f"app/static/images/images_emballage/viz_carton{id}")
+    visualize_individual(containers, f"app/static/images/images_emballage/viz_carton{id}")
 
 def visualize_packing_nsga1(df, id):
     global boxes
