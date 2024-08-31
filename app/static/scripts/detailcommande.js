@@ -150,8 +150,10 @@ $(document).ready(function() {
                     uniqueData.push(item);
                     }
                 });
-                uniqueData.forEach(function(item) {
+                uniqueData.forEach(function(item, index) {
+                    if (index != uniqueData.length - 1) {
                     tableHtml += '<tr><td>' + item[headers1.sku] + '</td><td class="text-right pr-3">' + item[headers1.item_q] + '</td></tr>';
+                    }
                 });
                 //tableHtml += '<tbody><tr><td>' + data[0][headers1.sku] + '</td><td class="text-right pr-3">' + data[0][headers1.item_q] + '</td></tr></tbody>';
                 //tableHtml += '<tbody><tr><td>' + data[5][headers1.sku] + '</td><td class="text-right pr-3">' + data[5][headers1.item_q] + '</td></tr></tbody>';
