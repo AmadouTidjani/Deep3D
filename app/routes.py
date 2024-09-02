@@ -676,6 +676,8 @@ def pack_articles():
 
     # Process and pack the articles using your Python logic
     pack_articles, non_pack_articles = model_pack_articles(articles)
+    pack_articles["nb_bin"] = len(list(pack_articles["ID Carton"].unique()))
+    
     result = pack_articles.to_dict(orient='records')
     dict_non_pack = {}
     if len(non_pack_articles)==0:

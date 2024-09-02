@@ -99,6 +99,7 @@ $(document).ready(function() {
                     bin_L: 'Longueur Carton (cm)',
                     bin_l: 'Largeur Carton (cm)',
                     bin_h: 'Hauteur Carton (cm)',
+                    nb_bin : "nb_bin",
                 };
 
                 // Calculs des pourcentages et poids restants
@@ -166,7 +167,19 @@ $(document).ready(function() {
                 tableHtml += '<div class="text-18 mb-4">Articles non emballés:</div>';
                 tableHtml += '<table class="form simple gray table-bordered">';
                 tableHtml += '<thead><tr><th>ID</th><th>Quantité</th></tr></thead>';
-                tableHtml += '<tbody><tr><td>1</td><td class="text-right pr-3"></td></tr></tbody>';
+                //tableHtml += '<tbody><tr><td>1</td><td class="text-right pr-3"></td></tr></tbody>';
+
+                const lastItem = data[data.length - 1]; // Dernier élément du tableau
+
+                // Vérifier si le dernier élément contient des articles non emballés
+                if (lastItem.non_pack_articles && lastItem.non_pack_articles > 0) {
+                    // Parcourir les articles non emballés et afficher leur ID et quantité
+                    lastItem.sku.forEach((sku, index) => {
+                        const quantity = lastItem.qte[index];
+                        tableHtml += `<tr><td>${sku}</td><td class="text-right pr-3">${quantity}</td></tr>`;
+                    });
+                }
+
                 tableHtml += '</table>';
                 tableHtml += '</div>';
              

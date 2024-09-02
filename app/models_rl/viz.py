@@ -456,7 +456,7 @@ class Bin1:
         return view(df, df_article, df_carton)
     
 
-class Bin2:
+class Bin:
 
     def __init__(self, df_article, df_carton):
         self.alpha = 0.25
@@ -587,7 +587,7 @@ class Bin2:
                 break
         return view(df, df_article, df_carton)
 
-class Bin:
+class Bin2:
 
     def __init__(self, df_article, df_carton):
         self.alpha = 0.25
@@ -675,6 +675,7 @@ class Bin:
             found = False
             for combination in combinations:
                 # Calculer les dimensions combinées pour chaque combinaison
+                print("valeur combinaison : ", combination)
                 a_dims = Bin.calculate_combined_dimensions(combination)
                 a_weight = df_group["Poids"].sum()
 
