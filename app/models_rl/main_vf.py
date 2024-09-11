@@ -122,6 +122,7 @@ def train(env, agent, action_size, args, episodes = 20, batch_size =2, plot=True
     ### Comparaison des modèles ""
     np.save(f"{filename_prefix}_scores.npy", scores)
     np.save(f"{filename_prefix}_times.npy", times)
+    losses = agent.save_loss(f"{filename_prefix}_train_losses.npy")
     # Afficher les graphiques de performance
     if plot:
         plt.figure(figsize=(12, 6))
@@ -131,6 +132,13 @@ def train(env, agent, action_size, args, episodes = 20, batch_size =2, plot=True
         plt.title('Espace occupé par episode')
         plt.savefig(f'save/train.png')
         
+        plt.figure(figsize=(12, 6))
+        plt.plot(losses)
+        plt.xlabel('Itérations')
+        plt.ylabel('loss value')
+        plt.title('Evolution de la loss')
+        plt.savefig(f'save/train_losses.png')
+
         plt.figure(figsize=(12, 6))
         plt.plot(times)
         plt.xlabel('Episodes')

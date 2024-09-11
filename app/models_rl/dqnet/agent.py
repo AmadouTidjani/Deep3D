@@ -6,6 +6,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 from time import time, sleep
+import numpy as np
 
 class DQNAgent:
     def __init__(self, state_size, action_size,args):
@@ -19,6 +20,8 @@ class DQNAgent:
         self.epsilon_decay = args.epsilon_decay
         self.learning_rate = args.learning_rate
         self.model = self._build_model()
+        self.mse = tf.keras.losses.MeanSquaredError()
+        self.losses = []
     
     def _build_model(self):
         model = Sequential()
@@ -59,6 +62,7 @@ class DQNAgent:
     
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
+        total_loss = 0
         for state, action, reward, next_state, done in minibatch:
             target = reward
             if not done:
@@ -66,9 +70,13 @@ class DQNAgent:
             target_f = self.model.predict(state)
             target_f[0][action] = target
             self.model.fit(state, target_f, epochs=1, verbose=1)
+            total_loss += self.mse(target, target_f)
+        self.losses.append(total_loss.numpy()/batch_size)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
-    
+    def save_loss(self, path):
+        np.save(path, self.losses)
+        return self.losses
     def load(self, name):
         self.model.load_weights(name)
     
