@@ -1,15 +1,16 @@
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import random
 import os
 from itertools import permutations, product
+import concurrent.futures
 
-if os.getcwd().endswith('flaskblog') or os.getcwd().endswith('Deep3D'):
-    from app.models_rl.viz_nsga.Main import visualize_packing_nsga
-else:
-    from viz_nsga.Main import visualize_packing_nsga
-
+## fonction qui prend la prediction du modèle, les articles, et les cartons
+## calcul les volumes, l'espace inoccupé, 
+### renvoie une table (df) qui donne pour chaque article les infos du
+## carton dans lequel l'article 
 def view(pred, df_article, df_carton): 
     # Vérifier si pred est un DataFrame
     if isinstance(pred, pd.DataFrame):
@@ -68,63 +69,37 @@ def view(pred, df_article, df_carton):
     })
     return res
 
-
+### Input : return view
+### Selection d'un carton et application de la visualisation
 def visualize_packing1(df):
     list_carton = list(pd.unique(df['ID Carton']))
+    results = []
     for id_carton in list_carton:
         df_temp = df[df['ID Carton'] == id_carton].copy()
         df_temp['Volume Article (cm^3)'] = df_temp['Longueur Article (cm)'] * df_temp['Largeur Article (cm)'] * df_temp['Hauteur Article (cm)']
         df_temp = df_temp.sort_values(by='Volume Article (cm^3)', ascending=False)
-        visualize_packing(df_temp, id_carton)
-        #visualize_packing_nsga(df_temp, id_carton)
+        result = visualize_packing(df_temp, id_carton)
+        results.append(result)
+    return results
 
-def visualize_packing(df, id_carton):
-    length = df['Longueur Carton (cm)'].iloc[0]
-    width = df['Largeur Carton (cm)'].iloc[0]
-    height = df['Hauteur Carton (cm)'].iloc[0]
-    nb_articles = len(df)
-    carton_length = max(length, width, height)
-    carton_width = min(length, width, height)
-    carton_height = np.median([length, width, height])
-    bin_dims = sorted([length,width,height])
-    carton_height,carton_width,carton_length = bin_dims
+def pack_articles(articles, carton_length, carton_width, carton_height):
+    def can_place(x, y, z, dx, dy, dz, placed):
+        if x + dx > carton_length or y + dy > carton_width or z + dz > carton_height:
+            return False
+        for p in placed:
+            px, py, pz, pdx, pdy, pdz = p['position']
+            if (x < px + pdx and x + dx > px and
+                y < py + pdy and y + dy > py and
+                z < pz + pdz and z + dz > pz):
+                return False
+        return True
 
-    articles = list(df[['Longueur Article (cm)', 'Largeur Article (cm)', 'Hauteur Article (cm)']].itertuples(index=False, name=None))
-
-# Exemple d'appel de la fonction (assurez-vous que df est correctement défini)
-# visualize_packing(df, id_carton=1)
-    def draw_parallelepiped(x, y, z, dx, dy, dz, color):
-        return go.Mesh3d(
-            x=[x, x, x+dx, x+dx, x, x, x+dx, x+dx],
-            y=[y, y+dy, y+dy, y, y, y+dy, y+dy, y],
-            z=[z, z, z, z, z+dz, z+dz, z+dz, z+dz],
-            i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-            j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-            k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-            color=color,
-            opacity=1
-        )
-
-    def random_color():
-        return f'rgb({random.randint(0,255)},{random.randint(0,255)},{random.randint(0,255)})'
-
-    # Initialize the figure once
-    fig = go.Figure()
-
-    # Add the carton (box)
-    fig.add_trace(draw_parallelepiped(0, 0, 0, carton_length, carton_width, carton_height, 'rgba(200, 200, 200, 0.1)'))
-
-    # Track available space and placed articles
-    available_space = [(0, 0, 0, carton_length, carton_width, carton_height)]
-    placed_articles = []
-    traces = []
-
-    def find_best_position(article, spaces, placed_articles):
-        best_fit = float('inf')
+    def find_best_position(article, placed):
         best_position = None
-        best_rotation = None
-
-        # Générer toutes les rotations possibles
+        best_z = float('inf')
+        best_y = float('inf')
+        best_x = float('inf')
+        
         rotations = [
             (article[0], article[1], article[2]),
             (article[1], article[0], article[2]),
@@ -135,63 +110,86 @@ def visualize_packing(df, id_carton):
         ]
 
         for rotation in rotations:
-            for space in spaces:
-                sx, sy, sz, sl, sw, sh = space
-                if rotation[0] <= sl and rotation[1] <= sw and rotation[2] <= sh:
-                    # Calculer le volume laissé et utiliser la somme des écarts comme heuristique
-                    leftover_volume = (sl - rotation[0]) * (sw - rotation[1]) * (sh - rotation[2])
-                    if leftover_volume < best_fit:
-                        # Vérifier les chevauchements
-                        overlaps = False
-                        for placed in placed_articles:
-                            px, py, pz, pdx, pdy, pdz = placed['position']
-                            if (sx < px + pdx and sx + rotation[0] > px and
-                                sy < py + pdy and sy + rotation[1] > py and
-                                sz < pz + pdz and sz + rotation[2] > pz):
-                                overlaps = True
-                                break
-                        if not overlaps:
-                            best_fit = leftover_volume
-                            best_position = (sx, sy, sz)
-                            best_rotation = rotation
+            dx, dy, dz = rotation
+            for z in range(int(carton_height - dz + 1)):
+                for y in range(int(carton_width - dy + 1)):
+                    for x in range(int(carton_length - dx + 1)):
+                        if can_place(x, y, z, dx, dy, dz, placed):
+                            if z < best_z or (z == best_z and y < best_y) or (z == best_z and y == best_y and x < best_x):
+                                best_position = (x, y, z, dx, dy, dz)
+                                best_z, best_y, best_x = z, y, x
+                            break  # Move to next y if position found
+                    if best_position and best_z == z and best_y == y:
+                        break  # Move to next z if position found
+                if best_position and best_z == z:
+                    break  # Stop if best bottom position found
 
-        return best_position, best_rotation
+        return best_position
+
+    placed = []
+    for article in sorted(articles, key=lambda a: a[0]*a[1]*a[2], reverse=True):
+        position = find_best_position(article, placed)
+        if position:
+            placed.append({'dimensions': article, 'position': position})
+
+    volume_utilisé = sum(a['dimensions'][0] * a['dimensions'][1] * a['dimensions'][2] for a in placed) / (carton_length * carton_width * carton_height)
+    return placed, volume_utilisé
 
 
-    # Sort articles by volume descending
-    sorted_articles = sorted(articles, key=lambda a: a[0]*a[1]*a[2], reverse=True)
+def draw_parallelepiped(x, y, z, dx, dy, dz, color):
+    return go.Mesh3d(
+        x=[x, x, x+dx, x+dx, x, x, x+dx, x+dx],
+        y=[y, y+dy, y+dy, y, y, y+dy, y+dy, y],
+        z=[z, z, z, z, z+dz, z+dz, z+dz, z+dz],
+        i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
+        j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
+        k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
+        color=color,
+        opacity=1,  # Réduire légèrement l'opacité pour améliorer les performances
+        flatshading=True  # Utiliser le flat shading pour un rendu plus rapide
+    )
+
+def random_color():
+    return f'rgb({random.randint(0,255)},{random.randint(0,255)},{random.randint(0,255)})'
+
+def process_orientation(args):
+    articles, orientation = args
+    placed_articles, volume_utilisé = pack_articles(articles, *orientation)
+    return placed_articles, volume_utilisé, orientation
+
+### faire la viz de les articles qui sont dans le meme carton
+### enregistrement en format specifique
+def visualize_packing(df, id_carton):
+    carton_dims = df[['Longueur Carton (cm)', 'Largeur Carton (cm)', 'Hauteur Carton (cm)']].iloc[0].tolist()
+    nb_articles = len(df)
+    articles = list(df[['Longueur Article (cm)', 'Largeur Article (cm)', 'Hauteur Article (cm)']].itertuples(index=False, name=None))
+    
+    carton_orientations = list(permutations(carton_dims))
+    best_orientation = None
+    best_volume_utilisé = 0
+    best_placed_articles = []
+    
+    for orientation in carton_orientations:
+        placed_articles, volume_utilisé = pack_articles(articles, *orientation)
+        if len(placed_articles) > len(best_placed_articles) or (len(placed_articles) == len(best_placed_articles) and volume_utilisé > best_volume_utilisé):
+            best_orientation = orientation
+            best_volume_utilisé = volume_utilisé
+            best_placed_articles = placed_articles
+    
+    carton_length, carton_width, carton_height = best_orientation
+    
+    fig = go.Figure()
+    fig.add_trace(draw_parallelepiped(0, 0, 0, carton_length, carton_width, carton_height, 'rgba(200, 200, 200, 0.1)'))
 
     placed_articles_count = 0
-
-    for i, article in enumerate(sorted_articles):
-        position, rotation = find_best_position(article, available_space, placed_articles)
-        if position and rotation:
-            x_pos, y_pos, z_pos = position
-
-            # Place the article
-            placed_articles.append({
-                'position': (x_pos, y_pos, z_pos, rotation[0], rotation[1], rotation[2]),
-                'dimensions': rotation
-            })
-
+    for i, article in enumerate(articles):
+        if placed_articles_count < len(best_placed_articles) and article == best_placed_articles[placed_articles_count]['dimensions']:
+            x, y, z, dx, dy, dz = best_placed_articles[placed_articles_count]['position']
+            fig.add_trace(draw_parallelepiped(x, y, z, dx, dy, dz, random_color()))
             placed_articles_count += 1
-
-            # Add the article to the figure
-            fig.add_trace(draw_parallelepiped(x_pos, y_pos, z_pos, rotation[0], rotation[1], rotation[2], random_color()))
-
-            # Update available spaces
-            new_spaces = [
-                (x_pos + rotation[0], y_pos, z_pos, carton_length - (x_pos + rotation[0]), rotation[1], rotation[2]),
-                (x_pos, y_pos + rotation[1], z_pos, rotation[0], carton_width - (y_pos + rotation[1]), rotation[2]),
-                (x_pos, y_pos, z_pos + rotation[2], rotation[0], rotation[1], carton_height - (z_pos + rotation[2]))
-            ]
-            # Filter out any invalid spaces
-            new_spaces = [s for s in new_spaces if s[3] > 0 and s[4] > 0 and s[5] > 0]
-            available_space.extend(new_spaces)
         else:
-            print(f"Article {i} ne peut pas être emballé.")
+            print(f"Article {i+1} ne peut pas être emballé.")
 
-    # Set layout
     fig.update_layout(
         scene=dict(
             xaxis=dict(range=[0, carton_length], showticklabels=False, title='X (cm)'),
@@ -199,7 +197,7 @@ def visualize_packing(df, id_carton):
             zaxis=dict(range=[0, carton_height], showticklabels=False, title='Z (cm)'),
             aspectmode='data'
         ),
-        title=f'Visualisation de l\'emballage dans le carton {id_carton} (Nombre d\'articles placés: {placed_articles_count}/{nb_articles})',
+        title=f'Visualisation de l\'emballage dans le carton {id_carton} (Articles placés: {placed_articles_count}/{nb_articles})',
         margin=dict(r=20, l=10, b=10, t=40),
         annotations=[
             dict(
@@ -207,270 +205,39 @@ def visualize_packing(df, id_carton):
                 y=0.95,
                 xref='paper',
                 yref='paper',
-                text=f'Articles placé(s): {placed_articles_count}',
+                text=f'Volume utilisé: {best_volume_utilisé:.2%}',
                 showarrow=False,
             )
         ]
     )
 
-    # Set camera angle for better view
     fig.update_layout(scene_camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)))
-
-    # Save the visualization
     fig.write_html(f"app/static/images/images_emballage/viz_carton{id_carton}.html")
 
+    return {
+        'carton_id': id_carton,
+        'carton_dimensions': best_orientation,
+        'articles_placés': placed_articles_count,
+        'total_articles': nb_articles,
+        'volume_utilisé': best_volume_utilisé
+    }
+# Exemple d'utilisation avec un DataFrame (df)
+# visualize_packing_vtk(df, id_carton=1)
+
+### classe BIN : Algorithme de regroupement des articles 
+### dans le carton. 
 class Bin1:
 
     def __init__(self, df_article, df_carton):
-        self.alpha = 0.25
-        self.df_article = df_article
-        self.df_carton = df_carton
-
-    @staticmethod
-    def median_index(values):
-        sorted_indices = np.argsort(values)
-        median_idx = len(sorted_indices) // 2
-        return sorted_indices[median_idx]
-
-    @staticmethod
-    def bp(a_dims, a_weight, df_carton):
-        # a_dims is a sorted array of dimensions [Longueur, Largeur, Hauteur]
-        a_dims = sorted(a_dims)
-        
-        def calculate_diff(carton):
-            c_dims = sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])
-            
-            diffs = [float(c_dims[i] - a_dims[i]) for i in range(len(a_dims))]
-            result = np.array(diffs)
-            return np.prod(result)
-
-        diffs_list = df_carton.apply(lambda carton: calculate_diff(carton), axis=1)
-        df_carton['diffs'] = diffs_list
-
-        # Filter cartons that can contain the article
-        df_carton['fits'] = df_carton.apply(
-            lambda carton: all(np.array(sorted([carton['Longueur'], carton['Largeur'], carton['Hauteur']])) >= np.array(a_dims)) 
-                           and carton['Poids_max'] >= a_weight, axis=1)
-
-        
-        # Calculate an indicator based on the diffs
-        df_carton['diff_indicator'] = df_carton.apply(lambda carton: calculate_diff(carton) if carton['fits'] else np.inf, axis=1)
-
-        # Filter by indicator and get the index of the minimum diff_indicator
-        filtered_df = df_carton[df_carton["fits"] == True]
-        if filtered_df.empty:
-            return None
-            
-        return filtered_df['diff_indicator'].idxmin()
-
-    @staticmethod
-    def bp1(a, b, df):
-        # Calculate absolute differences and indicator values
-        df['diff'] = np.abs(df['v'] - float(a))
-        df['indicator'] = (df['v'] > a) & (df['Poids_max'] > b)
-
-        # Multiply absolute differences and indicators
-        df['diff_indicator'] = df['diff'] * df['indicator']
-
-        # Filter by indicator and get the index of the minimum diff_indicator
-        filtered_df = df[df["indicator"] == 1]
-        if filtered_df.empty:
-            return None
-        return filtered_df['diff_indicator'].idxmin()
-
-    @staticmethod
-    def put(df_article, df_carton, alpha=0.25):
-        used_cartons = []  # List to store used cartons
-        group_results = []  # List to store the results for each group
-
-        # Create random groups of articles based on alpha
-        n = len(df_article)
-        div = int((1 - alpha) * n)
-        if div == 0: div += 1
-
-        article_ids = df_article.index.tolist()
-        grouped_articles = []
-
-        while article_ids:
-            group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
-            grouped_articles.append(df_article.loc[group].copy())
-            article_ids = list(set(article_ids) - set(group))
-
-        for i, df_group in enumerate(grouped_articles):
-            # Calculate the total dimensions and weight for the group of articles
-            lengths = df_group["Longueur"].values
-            widths = df_group["Largeur"].values
-            heights = df_group["Hauteur"].values
-            quantities = df_group["Quantite"].values
-
-            total_lengths = np.sum(np.sort(lengths)[:len(lengths)-1]) + np.max(lengths)
-            total_widths = np.sum(np.sort(widths)[:len(widths)-1]) + np.max(widths)
-            total_heights = np.sum(np.sort(heights)[:len(heights)-1]) + np.max(heights)
-
-            a_dims = [total_lengths, total_widths, total_heights]
-            a_weight = df_group["Poids"].sum()
-
-            # Search for a carton to pack the group of articles
-            cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
-            packed_group = Bin.bp(a_dims, a_weight, cartons_except_used)
-
-            if packed_group is not None:
-                # Record the result for the group
-                group_results.append((list(df_group.index), packed_group))
-                used_cartons.append(packed_group)
-            else:
-                return group_results, False
-
-        return group_results, True
-    
-    #staticmethod
-    def cumul_articles(df_group):
-        # Initialize the total dimensions
-        total_length, total_width, total_height = 0, 0, 0
-        
-        # Initialize previous sorted dimensions
-        prev_dims = None
-
-        for index, row in df_group.iterrows():
-            current_dims = sorted([row['Longueur'], row['Largeur'], row['Hauteur']])
-            
-            #print(current_dims)
-            
-            if prev_dims is None:
-                # First iteration, set previous dimensions
-                prev_dims = current_dims
-            else:
-                # Sum the smallest dimensions
-                total_length = prev_dims[0] + current_dims[0]
-                total_width = max(total_width, prev_dims[1], current_dims[1])
-                total_height = max(total_height, prev_dims[2], current_dims[2])
-                
-                # Update previous dimensions
-                prev_dims = sorted([total_length, total_width, total_height])
-            
-        
-        return sorted(prev_dims, reverse = True)
-
-    @staticmethod
-    def put2(df_article, df_carton, alpha=0.25):
-        used_cartons = []  # List to store used cartons
-        group_results = []  # List to store the results for each group
-
-        # Create random groups of articles based on alpha
-        n = len(df_article)
-        div = int((1 - alpha) * n)
-        if div == 0: div += 1
-
-        article_ids = df_article.index.tolist()
-        grouped_articles = []
-
-        while article_ids:
-            group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
-            grouped_articles.append(df_article.loc[group].copy())
-            article_ids = list(set(article_ids) - set(group))
-        grouped_articles = []
-        for i in range(0, n, div):
-            grouped_articles.append(df_article.iloc[i:i+div].copy())
-            
-        for i, df_group in enumerate(grouped_articles):
-            # Calculate the total dimensions and weight for the group of articles
-            a_dims = Bin.cumul_articles(df_group)#[df_group["Longueur"].max(), df_group["Largeur"].max(), df_group["Hauteur"].max()]
-            a_weight = df_group["Poids"].sum()
-
-            # Search for a carton to pack the group of articles
-            cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
-            packed_group = Bin.bp(a_dims, a_weight, cartons_except_used)
-
-            if packed_group is not None:
-                # Record the result for the group
-                group_results.append((list(df_group.index), packed_group))
-                used_cartons.append(packed_group)
-            else:
-                return group_results, False
-
-        return group_results, True
-    
-    @staticmethod
-    def put1(df_article, df_carton, alpha=0.25):
-        # Calculate volumes for articles and cartons
-        df_article["v"] = df_article["Longueur"] * df_article["Largeur"] * df_article["Hauteur"] * df_article["Quantite"]
-        df_carton["v"] = df_carton["Longueur"] * df_carton["Largeur"] * df_carton["Hauteur"]
-
-        used_cartons = []  # List to store used cartons
-        group_results = []  # List to store the results for each group
-
-        # Create random groups of articles based on alpha
-        n = len(df_article)
-        div = int((1 - alpha) * n)
-        if div == 0: div += 1
-
-        article_ids = df_article.index.tolist()
-        grouped_articles = []
-
-        while article_ids:
-            group = np.random.choice(article_ids, size=min(div, len(article_ids)), replace=False)
-            grouped_articles.append(df_article.loc[group].copy())
-            article_ids = list(set(article_ids) - set(group))
-
-        for i, df_group in enumerate(grouped_articles):
-            # Calculate the total volume and weight for the group of articles
-            a_group = df_group["v"].sum()
-            b_group = df_group["Poids"].sum()
-
-            # Search for a carton to pack the group of articles
-            cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
-            packed_group = Bin.bp(a_group, b_group, cartons_except_used)
-
-            if packed_group is not None:
-                # Record the result for the group
-                group_results.append((list(df_group.index), packed_group))
-                used_cartons.append(packed_group)
-            else:
-                return group_results, False
-
-        return group_results, True
-
-    def pack(self):
-        df_article = self.df_article
-        df_carton = self.df_carton
-
-        for alpha in np.arange(0, 1.1, 0.1):
-            res, done = Bin.put(df_article, df_carton, alpha)
-            #print("alpha : ", alpha)
-            if done or alpha == 1.0:
-                c1 = []  # Article IDs
-                c2 = []  # Carton IDs
-                c3 = []  # Group of articles packed together
-
-                for x in res:
-                    for i in x[0]:
-                        c1.append(i)
-                        c2.append(x[1])
-                        c3.append(x[0])
-
-                # Create the resulting DataFrame
-                df = pd.DataFrame({'id_article': c1, 'id_carton': c2, 'pack_together': c3})
-                break
-
-        
-        return view(df, df_article, df_carton)
-    
-
-class Bin:
-
-    def __init__(self, df_article, df_carton):
-        self.alpha = 0.25
+        self.alpha = 0.15
         self.df_article = df_article
         self.df_carton = df_carton
         self.df_article["v"] = df_article['Longueur'] * df_article['Largeur'] * df_article['Hauteur']
         self.df_carton["v"] = df_carton['Longueur'] * df_carton['Largeur'] * df_carton['Hauteur']
 
-    @staticmethod
-    def median_index(values):
-        sorted_indices = np.argsort(values)
-        median_idx = len(sorted_indices) // 2
-        return sorted_indices[median_idx]
-
+    
+    ### fonction - qui prend les dimensions d'un article et son poids et df des cartons
+    ### on regarde les contraintes pour chacun des cartons du df
     @staticmethod
     def bp(a_dims, a_weight, df_carton):
         # a_dims is a sorted array of dimensions [Longueur, Largeur, Hauteur]
@@ -545,7 +312,8 @@ class Bin:
         for df_group in grouped_articles:
             # Calculate the total dimensions and weight for the group of articles
             print(" shape df_group : ", df_group.columns)
-            a_dims = df_group["v"].sum() #Bin.cumul_articles(df_group)
+            a_dims = df_group["v"].sum() #
+            a_dims = Bin.cumul_articles(df_group)
             a_weight = df_group["Poids"].sum()
 
             # Search for a carton to pack the group of articles
@@ -554,7 +322,8 @@ class Bin:
             #print("Dimensions cartons : ", cartons_except_used)
             #print("===================\n\n")
             #print(ddss)
-            packed_group = Bin.bp1(a_dims, a_weight, cartons_except_used)
+            #packed_group = Bin.bp1(a_dims, a_weight, cartons_except_used)
+            packed_group = Bin.bp(a_dims, a_weight, cartons_except_used)
 
             if packed_group is not None:
                 # Record the result for the group
@@ -586,6 +355,33 @@ class Bin:
                 df = pd.DataFrame({'id_article': c1, 'id_carton': c2, 'pack_together': c3})
                 break
         return view(df, df_article, df_carton)
+
+        df_article = self.df_article
+        df_carton = self.df_carton
+
+        for alpha in np.arange(0, 1.1, 0.1):
+            res, done = Bin.put2(df_article, df_carton, alpha)
+            if done or alpha == 1.0:
+                c1 = []  # Article IDs
+                c2 = []  # Carton IDs
+                c3 = []  # Group of articles packed together
+
+                for x in res:
+                    for i in x[0]:
+                        c1.append(i)
+                        c2.append(x[1])
+                        c3.append(x[0])
+
+                # Create the resulting DataFrame
+                df = pd.DataFrame({'id_article': c1, 'id_carton': c2, 'pack_together': c3})
+                break
+        return view(df, df_article, df_carton)
+
+
+###
+from itertools import permutations, product
+import numpy as np
+import pandas as pd
 
 class Bin2:
 
@@ -675,7 +471,6 @@ class Bin2:
             found = False
             for combination in combinations:
                 # Calculer les dimensions combinées pour chaque combinaison
-                print("valeur combinaison : ", combination)
                 a_dims = Bin.calculate_combined_dimensions(combination)
                 a_weight = df_group["Poids"].sum()
 
@@ -713,6 +508,135 @@ class Bin2:
                         c3.append(x[0])
 
                 # Create the resulting DataFrame
+                df = pd.DataFrame({'id_article': c1, 'id_carton': c2, 'pack_together': c3})
+                break
+        return view(df, df_article, df_carton)
+
+from itertools import permutations, product
+import numpy as np
+import pandas as pd
+
+class Bin:
+
+    def __init__(self, df_article, df_carton):
+        self.alpha = 0.25
+        self.df_article = df_article
+        self.df_carton = df_carton
+        self.df_article["v"] = df_article['Longueur'] * df_article['Largeur'] * df_article['Hauteur']
+        self.df_carton["v"] = df_carton['Longueur'] * df_carton['Largeur'] * df_carton['Hauteur']
+
+    @staticmethod
+    def generate_orientations(article):
+        """
+        Génère toutes les orientations possibles pour un article.
+        :param article: Un article avec ses dimensions [L, l, H]
+        :return: Liste des permutations (orientations)
+        """
+        return list(permutations(article))
+
+    @staticmethod
+    def generate_combinations(articles):
+        """
+        Génère toutes les combinaisons possibles d'orientations pour un groupe d'articles.
+        :param articles: Liste d'articles, chaque article est une liste de ses orientations possibles
+        :return: Liste de combinaisons de dimensions
+        """
+        return list(product(*articles))
+
+    @staticmethod
+    def calculate_combined_volume(combination):
+        """
+        Calcule le volume total pour une combinaison d'articles.
+        :param combination: Combinaison d'orientations des articles
+        :return: Volume total des articles combinés
+        """
+        total_volume = sum(item[0] * item[1] * item[2] for item in combination)  # Somme des volumes
+        return total_volume
+
+    @staticmethod
+    def bp(a_volume, a_weight, df_carton):
+        """
+        Cherche un carton capable de contenir les articles en fonction du volume et du poids.
+        :param a_volume: Volume total des articles
+        :param a_weight: Poids total des articles
+        :param df_carton: DataFrame des cartons disponibles
+        :return: Index du carton sélectionné ou None si aucun carton ne convient
+        """
+        # Vérification des cartons par rapport au volume et au poids
+        df_carton['fits'] = df_carton.apply(
+            lambda carton: carton['v'] >= a_volume and carton['Poids_max'] >= a_weight, axis=1
+        )
+
+        # Filtrer les cartons qui peuvent contenir la combinaison d'articles
+        filtered_df = df_carton[df_carton["fits"] == True]
+        
+        if filtered_df.empty:
+            return None
+            
+        # Retourner l'index du carton ayant le volume le plus proche du volume nécessaire
+        return filtered_df['v'].idxmin()
+
+    @staticmethod
+    def put2(df_article, df_carton, alpha=0.25):
+        used_cartons = []  # List to store used cartons
+        group_results = []  # List to store the results for each group
+
+        # Créer des groupes d'articles en fonction de alpha
+        n = len(df_article)
+        div = max(int((1 - alpha) * n), 1)
+
+        grouped_articles = []
+
+        # Regrouper les articles en les divisant en morceaux
+        for i in range(0, n, div):
+            grouped_articles.append(df_article.iloc[i:i + div].copy())
+
+        for df_group in grouped_articles:
+            # Générer les orientations possibles pour chaque article du groupe
+            orientations = [Bin.generate_orientations([row['Longueur'], row['Largeur'], row['Hauteur']]) for _, row in df_group.iterrows()]
+            # Générer toutes les combinaisons d'orientations
+            combinations = Bin.generate_combinations(orientations)
+
+            found = False
+            for combination in combinations:
+                # Calculer le volume total pour chaque combinaison
+                a_volume = Bin.calculate_combined_volume(combination)
+                a_weight = df_group["Poids"].sum()
+
+                # Rechercher un carton pour emballer le groupe d'articles
+                cartons_except_used = df_carton[~df_carton.index.isin(used_cartons)]
+                packed_group = Bin.bp(a_volume, a_weight, cartons_except_used)
+
+                if packed_group is not None:
+                    # Enregistrer le résultat pour le groupe
+                    group_results.append((list(df_group.index), packed_group))
+                    used_cartons.append(packed_group)
+                    found = True
+                    break
+
+            if not found:
+                return group_results, False  # Arrêter si aucun carton approprié n'est trouvé
+
+        return group_results, True
+
+    def pack(self):
+        df_article = self.df_article
+        df_carton = self.df_carton
+
+        for alpha in np.arange(0, 1.1, 0.1):
+            res, done = Bin.put2(df_article, df_carton, alpha)
+            if done or alpha == 1.0:
+                c1 = []  # IDs des articles
+                c2 = []  # IDs des cartons
+                c3 = []  # Groupes d'articles emballés ensemble
+
+                for x in res:
+                    for i in x[0]:
+                        c1.append(i)
+                        c2.append(x[1])
+                        c3.append(x[0])
+
+                # Créer le DataFrame résultat
                 df = pd.DataFrame({'id_article': c1, 'id_carton': c2, 'pack_together': c3})
                 break
         return view(df, df_article, df_carton)

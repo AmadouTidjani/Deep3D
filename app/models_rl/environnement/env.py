@@ -133,15 +133,14 @@ class Environment:
         
     def _fits_in_carton(self, article, carton):
 
-        article_L_l_h = float(article['Quantite'])*np.array(np.array(article[["Longueur", "Largeur", "Hauteur"]] ))
+        article_L_l_h = float(article['Quantite'])*np.array(np.array(article[["Longueur", "Largeur", "Hauteur"]]))
         carton_L_l_h = np.array(np.array(carton[["Longueur", "Largeur", "Hauteur"]] ))
         
         article_L_l_h = np.sort(article_L_l_h)
         carton_L_l_h = np.sort(carton_L_l_h)
 
         condition_dimensions = np.sort(carton_L_l_h) > np.sort(article_L_l_h)
-        # index_sort_dim_article = np.argsort(article_L_l_h)
-        # index_sort_dim_carton = np.argsort(carton_L_l_h)
+        
         if False in condition_dimensions:
             return False
 
