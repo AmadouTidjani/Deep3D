@@ -226,7 +226,7 @@ def visualize_packing(df, id_carton):
 
 ### classe BIN : Algorithme de regroupement des articles 
 ### dans le carton. 
-class Bin1:
+class Bin:
 
     def __init__(self, df_article, df_carton):
         self.alpha = 0.15
@@ -516,7 +516,7 @@ from itertools import permutations, product
 import numpy as np
 import pandas as pd
 
-class Bin:
+class Bin1:
 
     def __init__(self, df_article, df_carton):
         self.alpha = 0.25
