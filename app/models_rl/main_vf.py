@@ -107,6 +107,7 @@ def train(env, agent, action_size, args, episodes = 20, batch_size =2, plot=True
 
             if len(agent.memory) > args.batch_size:
                 start_replay = time()
+                print("=============================================>>>> replay ")
                 agent.replay(args.batch_size)
                 replay_times.append(time() - start_replay)
             
